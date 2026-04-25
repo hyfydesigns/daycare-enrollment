@@ -69,7 +69,7 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok', version: '2.0.0' }
 
 // ─── Serve built frontend in production ───────────────────────────────────────
 if (isProd) {
-  const distPath = path.join(__dirname, '../frontend/dist');
+  const distPath = path.join(__dirname, 'public');
   app.use(express.static(distPath));
   app.get('*', (req, res) => res.sendFile(path.join(distPath, 'index.html')));
 }
