@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 require('./database');
@@ -70,6 +71,12 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok', version: '2.0.0' }
 // ─── Serve built frontend in production ───────────────────────────────────────
 if (isProd) {
   const distPath = path.join(__dirname, 'public');
+  console.log('[static] __dirname   :', __dirname);
+  console.log('[static] distPath    :', distPath);
+  console.log('[static] dir exists  :', fs.existsSync(distPath));
+  if (fs.existsSync(distPath)) {
+    console.log('[static] dir contents:', fs.readdirSync(distPath));
+  }
   app.use(express.static(distPath));
   app.get('*', (req, res) => res.sendFile(path.join(distPath, 'index.html')));
 }
