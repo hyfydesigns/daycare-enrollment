@@ -12,6 +12,7 @@ import ReviewSubmit from './pages/ReviewSubmit';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminFormReview from './pages/AdminFormReview';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
+import OrgSettings from './pages/OrgSettings';
 import PrintView from './pages/PrintView';
 import Help from './pages/Help';
 
@@ -56,6 +57,7 @@ function AppRoutes() {
       {/* Org admin routes */}
       <Route path="/admin"                element={<ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>} />
       <Route path="/admin/enrollment/:id" element={<ProtectedRoute role="admin"><AdminFormReview /></ProtectedRoute>} />
+      <Route path="/admin/settings"       element={<ProtectedRoute role="admin"><OrgSettings /></ProtectedRoute>} />
 
       {/* Platform superadmin */}
       <Route path="/superadmin" element={<ProtectedRoute role="superadmin"><SuperAdminDashboard /></ProtectedRoute>} />

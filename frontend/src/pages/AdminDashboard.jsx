@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import Navbar from '../components/Navbar';
 import StatusBadge from '../components/StatusBadge';
@@ -20,6 +20,7 @@ function fmt(dt) {
 }
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const [enrollments, setEnrollments] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
@@ -54,9 +55,14 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-warm-50">
       <Navbar />
       <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">Enrollment Dashboard</h1>
-          <p className="text-gray-500 text-sm">Review and manage all parent submissions.</p>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">Enrollment Dashboard</h1>
+            <p className="text-gray-500 text-sm">Review and manage all parent submissions.</p>
+          </div>
+          <button onClick={() => navigate('/admin/settings')} className="btn-secondary text-sm py-2 px-4">
+            ⚙️ Settings
+          </button>
         </div>
 
         {/* Stats */}
