@@ -111,42 +111,94 @@ function NewOrgModal({ onClose, onCreated }) {
   );
 }
 
-function EditPlanModal({ org, onClose, onUpdated }) {
-  const [plan, setPlan] = useState(org.plan);
+function EditOrgModal({ org, onClose, onUpdated }) {
+  const [form, setForm] = useState({
+    name:          org.name          || '',
+    slug:          org.slug          || '',
+    tagline:       org.tagline       || '',
+    primary_color: org.primary_color || '#f97316',
+    accent_color:  org.accent_color  || '#1f2937',
+    logo_url:      org.logo_url      || '',
+    plan:          org.plan          || 'trial',
+  });
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [error,  setError]  = useState('');
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     setError('');
     try {
-      const { data } = await api.patch(`/superadmin/orgs/${org.id}`, { plan });
+      const { data } = await api.patch(`/superadmin/orgs/${org.id}`, form);
       onUpdated(data);
       onClose();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to update plan');
+      setError(err.response?.data?.error || 'Failed to update organization');
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg my-4">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-900">Change Plan</h2>
+          <h2 className="text-lg font-bold text-gray-900">Edit Organization</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && <div className="bg-red-50 text-red-600 rounded-lg p-3 text-sm">{error}</div>}
-          <p className="text-sm text-gray-600">Organization: <strong>{org.name}</strong></p>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Plan</label>
-            <select className="form-input" value={plan} onChange={e => setPlan(e.target.value)}>
-              {PLAN_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
-            </select>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Organization Name</label>
+              <input className="form-input" required value={form.name}
+                onChange={e => set('name', e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Slug</label>
+              <input className="form-input font-mono text-sm" required value={form.slug}
+                onChange={e => set('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))} />
+              <p className="text-xs text-gray-400 mt-1">Used in the subdomain URL</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Plan</label>
+              <select className="form-input" value={form.plan} onChange={e => set('plan', e.target.value)}>
+                {PLAN_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tagline <span className="text-gray-400 font-normal">(optional)</span></label>
+              <input className="form-input" value={form.tagline}
+                onChange={e => set('tagline', e.target.value)} placeholder="Where little ones grow" />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Logo URL <span className="text-gray-400 font-normal">(optional)</span></label>
+              <input className="form-input" value={form.logo_url}
+                onChange={e => set('logo_url', e.target.value)} placeholder="https://..." />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Primary Color</label>
+              <div className="flex items-center gap-2">
+                <input type="color" className="h-9 w-12 rounded-lg border border-gray-200 cursor-pointer p-1 flex-shrink-0"
+                  value={form.primary_color} onChange={e => set('primary_color', e.target.value)} />
+                <input className="form-input font-mono text-sm" value={form.primary_color}
+                  onChange={e => set('primary_color', e.target.value)} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Accent Color</label>
+              <div className="flex items-center gap-2">
+                <input type="color" className="h-9 w-12 rounded-lg border border-gray-200 cursor-pointer p-1 flex-shrink-0"
+                  value={form.accent_color} onChange={e => set('accent_color', e.target.value)} />
+                <input className="form-input font-mono text-sm" value={form.accent_color}
+                  onChange={e => set('accent_color', e.target.value)} />
+              </div>
+            </div>
           </div>
+
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="btn-secondary flex-1">Cancel</button>
             <button type="submit" className="btn-primary flex-1" disabled={saving}>
@@ -163,8 +215,8 @@ export default function SuperAdminDashboard() {
   const [stats, setStats] = useState(null);
   const [orgs, setOrgs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showNewOrg, setShowNewOrg] = useState(false);
-  const [editOrg, setEditOrg] = useState(null);
+  const [showNewOrg, setShowNewOrg]   = useState(false);
+  const [editOrg,    setEditOrg]      = useState(null);
 
   const load = () => {
     setLoading(true);
@@ -260,7 +312,7 @@ export default function SuperAdminDashboard() {
                           onClick={() => setEditOrg(org)}
                           className="btn-secondary text-xs py-1.5 px-3 whitespace-nowrap"
                         >
-                          Edit Plan
+                          Edit
                         </button>
                       </td>
                     </tr>
@@ -272,8 +324,8 @@ export default function SuperAdminDashboard() {
         )}
       </div>
 
-      {showNewOrg && <NewOrgModal onClose={() => setShowNewOrg(false)} onCreated={handleCreated} />}
-      {editOrg   && <EditPlanModal org={editOrg} onClose={() => setEditOrg(null)} onUpdated={handleUpdated} />}
+      {showNewOrg && <NewOrgModal  onClose={() => setShowNewOrg(false)} onCreated={handleCreated} />}
+      {editOrg   && <EditOrgModal  org={editOrg} onClose={() => setEditOrg(null)}  onUpdated={handleUpdated} />}
     </div>
   );
 }
