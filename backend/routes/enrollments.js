@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../database');
 const { authenticate } = require('../middleware/auth');
+const { sendSubmissionConfirmation, sendAdminNewEnrollment } = require('../services/email');
 
 const router = express.Router();
 router.use(authenticate);
@@ -94,6 +95,40 @@ router.post('/:id/submit', (req, res) => {
 
   const updated = db.prepare('SELECT * FROM enrollments WHERE id = ?').get(req.params.id);
   updated.form_data = JSON.parse(updated.form_data);
+
+  // Fire-and-forget emails: confirmation to parent + notification to admin
+  const org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(req.user.org_id);
+  const parent = db.prepare('SELECT full_name, email FROM users WHERE id = ?').get(req.user.id);
+  const adminUser = db.prepare("SELECT email FROM users WHERE org_id = ? AND role = 'admin' LIMIT 1").get(req.user.org_id);
+
+  if (org && parent) {
+    const appDomain = process.env.APP_DOMAIN || 'enrollpack.com';
+    const dashboardUrl = `https://${org.slug}.${appDomain}/dashboard`;
+    const reviewUrl = `https://${org.slug}.${appDomain}/admin/enrollment/${updated.id}`;
+    const color = org.primary_color || '#f97316';
+
+    sendSubmissionConfirmation({
+      to: parent.email,
+      parentName: parent.full_name,
+      childName: updated.child_name,
+      orgName: org.name,
+      orgColor: color,
+      dashboardUrl,
+    });
+
+    if (adminUser) {
+      sendAdminNewEnrollment({
+        to: adminUser.email,
+        childName: updated.child_name,
+        parentName: parent.full_name,
+        parentEmail: parent.email,
+        orgName: org.name,
+        orgColor: color,
+        reviewUrl,
+      });
+    }
+  }
+
   res.json(updated);
 });
 

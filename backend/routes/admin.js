@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../database');
 const { authenticate, requireAdmin } = require('../middleware/auth');
+const { sendStatusUpdate } = require('../services/email');
 
 const router = express.Router();
 router.use(authenticate, requireAdmin);
@@ -70,7 +71,11 @@ router.patch('/enrollments/:id/status', (req, res) => {
     return res.status(400).json({ error: 'Invalid status' });
   }
 
-  const enrollment = db.prepare('SELECT id FROM enrollments WHERE id = ? AND org_id = ?').get(req.params.id, orgId);
+  const enrollment = db.prepare(`
+    SELECT e.id, e.child_name, e.org_id, u.full_name AS parent_name, u.email AS parent_email
+    FROM enrollments e JOIN users u ON e.user_id = u.id
+    WHERE e.id = ? AND e.org_id = ?
+  `).get(req.params.id, orgId);
   if (!enrollment) return res.status(404).json({ error: 'Enrollment not found' });
 
   db.prepare(`
@@ -78,6 +83,25 @@ router.patch('/enrollments/:id/status', (req, res) => {
     SET status = ?, admin_notes = ?, updated_at = datetime('now')
     WHERE id = ?
   `).run(status, admin_notes || null, req.params.id);
+
+  // Fire-and-forget status update email to parent
+  const notifyStatuses = ['approved', 'needs_correction', 'printed', 'signed'];
+  if (notifyStatuses.includes(status)) {
+    const org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(enrollment.org_id);
+    if (org) {
+      const appDomain = process.env.APP_DOMAIN || 'enrollpack.com';
+      sendStatusUpdate({
+        to: enrollment.parent_email,
+        parentName: enrollment.parent_name,
+        childName: enrollment.child_name,
+        status,
+        adminNotes: admin_notes || null,
+        orgName: org.name,
+        orgColor: org.primary_color || '#f97316',
+        dashboardUrl: `https://${org.slug}.${appDomain}/dashboard`,
+      });
+    }
+  }
 
   res.json({ success: true });
 });

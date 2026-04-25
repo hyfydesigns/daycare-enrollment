@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const db = require('../database');
 const { authenticate, JWT_SECRET } = require('../middleware/auth');
 const resolveOrg = require('../middleware/resolveOrg');
+const { sendWelcome } = require('../services/email');
 
 const router = express.Router();
 
@@ -37,6 +38,17 @@ router.post('/register', resolveOrg, (req, res) => {
     JWT_SECRET,
     { expiresIn: '7d' }
   );
+
+  // Fire-and-forget welcome email
+  const appDomain = process.env.APP_DOMAIN || 'enrollpack.com';
+  const dashboardUrl = `https://${req.org.slug}.${appDomain}/dashboard`;
+  sendWelcome({
+    to: email.toLowerCase().trim(),
+    parentName: full_name.trim(),
+    orgName: req.org.name,
+    orgColor: req.org.primary_color || '#f97316',
+    dashboardUrl,
+  });
 
   res.status(201).json({
     token,
