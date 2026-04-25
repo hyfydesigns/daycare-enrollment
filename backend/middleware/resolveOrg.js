@@ -18,7 +18,12 @@ function resolveOrg(req, res, next) {
     (!isLocalhost && subdomain) ||
     'default';
 
-  const org = db.prepare('SELECT * FROM organizations WHERE slug = ?').get(slug);
+  // Try the derived slug first, then fall back to 'default' (handles platform
+  // hostnames like daycare-app.up.railway.app where the prefix is not an org slug)
+  const org =
+    db.prepare('SELECT * FROM organizations WHERE slug = ?').get(slug) ||
+    db.prepare("SELECT * FROM organizations WHERE slug = 'default'").get();
+
   if (!org) {
     return res.status(404).json({ error: `Organization '${slug}' not found` });
   }

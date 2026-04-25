@@ -1,10 +1,17 @@
 import axios from 'axios';
 
-// Derive the org slug from the subdomain (e.g. "sunshine" from "sunshine.app.com").
-// Falls back to 'default' in local development (localhost has no subdomain).
+// Derive the org slug from the subdomain.
+// Only extracts a slug when the hostname ends with the configured APP_DOMAIN
+// (e.g. "sunshine.myapp.com" → "sunshine" when VITE_APP_DOMAIN=myapp.com).
+// Falls back to 'default' for direct platform URLs and local dev.
 function getOrgSlug() {
-  const parts = window.location.hostname.split('.');
-  return parts.length >= 3 ? parts[0] : 'default';
+  const appDomain = import.meta.env.VITE_APP_DOMAIN; // e.g. "myapp.com"
+  const hostname = window.location.hostname;
+  if (appDomain && hostname.endsWith('.' + appDomain)) {
+    const prefix = hostname.slice(0, hostname.length - appDomain.length - 1);
+    if (prefix && !prefix.includes('.')) return prefix; // single-level subdomain only
+  }
+  return 'default';
 }
 
 const api = axios.create({ baseURL: '/api' });

@@ -21,8 +21,13 @@ function applyBranding(org) {
 }
 
 function getOrgSlug() {
-  const parts = window.location.hostname.split('.');
-  return parts.length >= 3 ? parts[0] : 'default';
+  const appDomain = import.meta.env.VITE_APP_DOMAIN; // e.g. "myapp.com"
+  const hostname = window.location.hostname;
+  if (appDomain && hostname.endsWith('.' + appDomain)) {
+    const prefix = hostname.slice(0, hostname.length - appDomain.length - 1);
+    if (prefix && !prefix.includes('.')) return prefix;
+  }
+  return 'default';
 }
 
 export function OrgProvider({ children }) {
