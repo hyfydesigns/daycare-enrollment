@@ -20,7 +20,9 @@ export default function Login() {
     setLoading(true);
     try {
       const user = await login(form.email, form.password);
-      navigate(user.role === 'admin' ? '/admin' : '/dashboard');
+      if (user.role === 'superadmin') navigate('/superadmin');
+      else if (user.role === 'admin') navigate('/admin');
+      else navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.error || 'Login failed. Please try again.');
     } finally {
