@@ -23,11 +23,19 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
 
 app.use(cors({
   origin: (origin, cb) => {
-    // Allow requests with no origin (mobile apps, curl) and listed origins
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
-    // In production also allow any subdomain of the app domain (https only)
-    if (isProd && process.env.APP_DOMAIN) {
-      const regex = new RegExp(`^https://[a-z0-9-]+\\.${process.env.APP_DOMAIN.replace('.', '\\.')}$`);
+    // Allow requests with no origin (mobile apps, curl, same-origin non-preflight)
+    if (!origin) return cb(null, true);
+    // Explicitly listed origins
+    if (allowedOrigins.includes(origin)) return cb(null, true);
+    // Railway auto-injects RAILWAY_PUBLIC_DOMAIN — allow our own deployment URL
+    if (process.env.RAILWAY_PUBLIC_DOMAIN &&
+        origin === `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`) {
+      return cb(null, true);
+    }
+    // Allow any subdomain of APP_DOMAIN (multi-tenant white-label orgs)
+    if (process.env.APP_DOMAIN) {
+      const escaped = process.env.APP_DOMAIN.replace(/\./g, '\\.');
+      const regex = new RegExp(`^https://(.*\\.)?${escaped}$`);
       if (regex.test(origin)) return cb(null, true);
     }
     cb(new Error('Not allowed by CORS'));
@@ -68,17 +76,17 @@ app.use('/api/superadmin',  require('./routes/superadmin'));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', version: '2.0.0' }));
 
-// ─── Serve built frontend in production ───────────────────────────────────────
-if (isProd) {
-  const distPath = path.join(__dirname, 'public');
-  console.log('[static] __dirname   :', __dirname);
-  console.log('[static] distPath    :', distPath);
-  console.log('[static] dir exists  :', fs.existsSync(distPath));
-  if (fs.existsSync(distPath)) {
-    console.log('[static] dir contents:', fs.readdirSync(distPath));
-  }
+// ─── Serve built frontend (whenever public/ exists) ───────────────────────────
+const distPath = path.join(__dirname, 'public');
+console.log('[static] __dirname   :', __dirname);
+console.log('[static] distPath    :', distPath);
+console.log('[static] dir exists  :', fs.existsSync(distPath));
+if (fs.existsSync(distPath)) {
+  console.log('[static] dir contents:', fs.readdirSync(distPath));
   app.use(express.static(distPath));
   app.get('*', (req, res) => res.sendFile(path.join(distPath, 'index.html')));
+} else {
+  console.warn('[static] WARNING: public/ not found — frontend will not be served');
 }
 
 // ─── Error handler ────────────────────────────────────────────────────────────
