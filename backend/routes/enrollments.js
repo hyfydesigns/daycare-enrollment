@@ -1,0 +1,100 @@
+const express = require('express');
+const db = require('../database');
+const { authenticate } = require('../middleware/auth');
+
+const router = express.Router();
+router.use(authenticate);
+
+// All enrollments for the logged-in parent within their org
+router.get('/', (req, res) => {
+  const enrollments = db.prepare(`
+    SELECT id, child_name, status, submitted_at, created_at, updated_at
+    FROM enrollments
+    WHERE user_id = ? AND org_id = ?
+    ORDER BY updated_at DESC
+  `).all(req.user.id, req.user.org_id);
+  res.json(enrollments);
+});
+
+// Single enrollment — parent can only access their own
+router.get('/:id', (req, res) => {
+  const enrollment = db.prepare(`
+    SELECT * FROM enrollments WHERE id = ? AND user_id = ? AND org_id = ?
+  `).get(req.params.id, req.user.id, req.user.org_id);
+  if (!enrollment) return res.status(404).json({ error: 'Enrollment not found' });
+  enrollment.form_data = JSON.parse(enrollment.form_data || '{}');
+  res.json(enrollment);
+});
+
+// Create new enrollment
+router.post('/', (req, res) => {
+  if (req.user.role !== 'parent') {
+    return res.status(403).json({ error: 'Only parents can create enrollments' });
+  }
+
+  const { form_data = {} } = req.body;
+  const child_name = form_data?.general?.childFullName || null;
+
+  const result = db.prepare(`
+    INSERT INTO enrollments (org_id, user_id, child_name, form_data, status)
+    VALUES (?, ?, ?, ?, 'draft')
+  `).run(req.user.org_id, req.user.id, child_name, JSON.stringify(form_data));
+
+  const enrollment = db.prepare('SELECT * FROM enrollments WHERE id = ?').get(result.lastInsertRowid);
+  enrollment.form_data = JSON.parse(enrollment.form_data);
+  res.status(201).json(enrollment);
+});
+
+// Save progress
+router.put('/:id', (req, res) => {
+  const existing = db.prepare(`
+    SELECT * FROM enrollments WHERE id = ? AND user_id = ? AND org_id = ?
+  `).get(req.params.id, req.user.id, req.user.org_id);
+
+  if (!existing) return res.status(404).json({ error: 'Enrollment not found' });
+  if (['submitted', 'approved', 'signed'].includes(existing.status)) {
+    return res.status(400).json({ error: 'Cannot edit a submitted or approved enrollment' });
+  }
+
+  const { form_data = {} } = req.body;
+  const child_name = form_data?.general?.childFullName || existing.child_name;
+
+  db.prepare(`
+    UPDATE enrollments
+    SET form_data = ?, child_name = ?, updated_at = datetime('now')
+    WHERE id = ? AND user_id = ? AND org_id = ?
+  `).run(JSON.stringify(form_data), child_name, req.params.id, req.user.id, req.user.org_id);
+
+  const updated = db.prepare('SELECT * FROM enrollments WHERE id = ?').get(req.params.id);
+  updated.form_data = JSON.parse(updated.form_data);
+  res.json(updated);
+});
+
+// Submit enrollment
+router.post('/:id/submit', (req, res) => {
+  const existing = db.prepare(`
+    SELECT * FROM enrollments WHERE id = ? AND user_id = ? AND org_id = ?
+  `).get(req.params.id, req.user.id, req.user.org_id);
+
+  if (!existing) return res.status(404).json({ error: 'Enrollment not found' });
+  if (!['draft', 'needs_correction'].includes(existing.status)) {
+    return res.status(400).json({ error: 'Enrollment already submitted' });
+  }
+
+  const { form_data } = req.body;
+  const finalData = form_data || JSON.parse(existing.form_data || '{}');
+  const child_name = finalData?.general?.childFullName || existing.child_name;
+
+  db.prepare(`
+    UPDATE enrollments
+    SET status = 'submitted', form_data = ?, child_name = ?,
+        submitted_at = datetime('now'), updated_at = datetime('now')
+    WHERE id = ? AND user_id = ? AND org_id = ?
+  `).run(JSON.stringify(finalData), child_name, req.params.id, req.user.id, req.user.org_id);
+
+  const updated = db.prepare('SELECT * FROM enrollments WHERE id = ?').get(req.params.id);
+  updated.form_data = JSON.parse(updated.form_data);
+  res.json(updated);
+});
+
+module.exports = router;
