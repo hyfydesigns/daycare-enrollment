@@ -35,8 +35,8 @@ export default function Login() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="w-10 h-10 bg-primary-500 rounded-xl flex items-center justify-center text-white text-xl">🏠</div>
-            <span className="font-bold text-gray-800 text-xl">Little Stars Daycare</span>
+            <div className="w-10 h-10 bg-primary-500 rounded-xl flex items-center justify-center text-white font-bold">EP</div>
+            <span className="font-bold text-gray-800 text-xl">EnrollPack</span>
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">
             {isStaff ? 'Staff Login' : 'Parent Login'}

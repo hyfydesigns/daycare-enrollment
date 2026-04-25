@@ -52,8 +52,8 @@ if (schemaVersion() < 1) {
 
   // 1b. Seed the default org so id=1 is always the original daycare
   db.prepare(`
-    INSERT OR IGNORE INTO organizations (id, name, slug, owner_email)
-    VALUES (1, 'Little Stars Daycare', 'default', 'admin@daycare.com')
+    INSERT OR IGNORE INTO organizations (id, name, slug, tagline, owner_email)
+    VALUES (1, 'EnrollPack', 'default', 'Daycare enrollment, simplified.', 'admin@daycare.com')
   `).run();
 
   if (hasUsers && !alreadyMultiTenant) {
@@ -155,6 +155,17 @@ if (schemaVersion() < 2) {
   `);
 
   db.prepare('INSERT INTO schema_migrations (version) VALUES (2)').run();
+}
+
+// ─── Migration 3: Rename default org to EnrollPack ───────────────────────────
+if (schemaVersion() < 3) {
+  db.exec(`
+    UPDATE organizations
+    SET name    = 'EnrollPack',
+        tagline = 'Daycare enrollment, simplified.'
+    WHERE slug = 'default' AND name = 'Little Stars Daycare'
+  `);
+  db.prepare('INSERT INTO schema_migrations (version) VALUES (3)').run();
 }
 
 db.exec('PRAGMA foreign_keys = ON');

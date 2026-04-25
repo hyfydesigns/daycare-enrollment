@@ -25,7 +25,7 @@ export default function Help() {
       <div className="max-w-3xl mx-auto px-4 py-10">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Help &amp; Instructions</h1>
-          <p className="text-gray-500 text-sm">Everything you need to know about using the Little Stars Daycare Enrollment App.</p>
+          <p className="text-gray-500 text-sm">Everything you need to know about using EnrollPack.</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
@@ -68,7 +68,7 @@ export default function Help() {
               </div>
               <div>
                 <p className="text-sm font-semibold text-gray-800 mb-1">Who do I contact for help?</p>
-                <p className="text-sm text-gray-600">Please contact Little Stars Daycare directly for questions about your child's enrollment status or required documents.</p>
+                <p className="text-sm text-gray-600">Please contact your daycare directly for questions about your child's enrollment status or required documents.</p>
               </div>
             </div>
           </Section>

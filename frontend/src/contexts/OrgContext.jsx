@@ -4,12 +4,12 @@ import axios from 'axios';
 const OrgContext = createContext(null);
 
 const DEFAULTS = {
-  name: 'Little Stars Daycare',
+  name: 'EnrollPack',
   slug: 'default',
   logo_url: null,
   primary_color: '#f97316',
   accent_color: '#1f2937',
-  tagline: null,
+  tagline: 'Daycare enrollment, simplified.',
   plan: 'trial',
 };
 
