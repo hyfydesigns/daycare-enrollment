@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useOrg } from '../contexts/OrgContext';
 
 export default function Register() {
   const { register } = useAuth();
+  const { org } = useOrg();
   const navigate = useNavigate();
   const [form, setForm] = useState({ full_name: '', email: '', phone: '', password: '', confirm: '' });
   const [error, setError] = useState('');
@@ -32,8 +34,17 @@ export default function Register() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="w-10 h-10 bg-primary-500 rounded-xl flex items-center justify-center text-white font-bold">EP</div>
-            <span className="font-bold text-gray-800 text-xl">EnrollPack</span>
+            {org.logo_url ? (
+              <img src={org.logo_url} alt={org.name} className="h-10 w-auto object-contain" />
+            ) : (
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0"
+                style={{ background: org.primary_color }}
+              >
+                {org.name ? org.name[0].toUpperCase() : 'E'}
+              </div>
+            )}
+            <span className="font-bold text-gray-800 text-xl">{org.name}</span>
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">Create Parent Account</h1>
           <p className="text-gray-500 text-sm mt-1">Register to begin your child's enrollment</p>

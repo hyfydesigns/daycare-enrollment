@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useOrg } from '../contexts/OrgContext';
 
 export default function Login() {
   const [params] = useSearchParams();
   const isStaff = params.get('role') === 'staff';
   const { login } = useAuth();
+  const { org } = useOrg();
   const navigate = useNavigate();
 
   const [form, setForm] = useState({ email: isStaff ? 'admin@daycare.com' : '', password: '' });
@@ -35,8 +37,17 @@ export default function Login() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="w-10 h-10 bg-primary-500 rounded-xl flex items-center justify-center text-white font-bold">EP</div>
-            <span className="font-bold text-gray-800 text-xl">EnrollPack</span>
+            {org.logo_url ? (
+              <img src={org.logo_url} alt={org.name} className="h-10 w-auto object-contain" />
+            ) : (
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold flex-shrink-0"
+                style={{ background: org.primary_color }}
+              >
+                {org.name ? org.name[0].toUpperCase() : 'E'}
+              </div>
+            )}
+            <span className="font-bold text-gray-800 text-xl">{org.name}</span>
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">
             {isStaff ? 'Staff Login' : 'Parent Login'}
