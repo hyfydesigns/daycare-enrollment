@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { OrgProvider } from './contexts/OrgContext';
 
 import Landing from './pages/Landing';
+import PlatformLanding from './pages/PlatformLanding';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ParentDashboard from './pages/ParentDashboard';
@@ -15,6 +16,15 @@ import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import OrgSettings from './pages/OrgSettings';
 import PrintView from './pages/PrintView';
 import Help from './pages/Help';
+
+// True when visiting the root platform domain (e.g. enrollpack.com),
+// false when on a daycare subdomain (e.g. sunshine.enrollpack.com)
+function isRootDomain() {
+  const appDomain = import.meta.env.VITE_APP_DOMAIN;
+  if (!appDomain) return false;
+  const hostname = window.location.hostname;
+  return hostname === appDomain || hostname === `www.${appDomain}`;
+}
 
 // Redirect logged-in users to their home page based on role
 function homeFor(user) {
@@ -44,9 +54,9 @@ function AppRoutes() {
   const { user } = useAuth();
   return (
     <Routes>
-      <Route path="/" element={<Landing />} />
-      <Route path="/login"    element={user ? <Navigate to={homeFor(user)} replace /> : <Login />} />
-      <Route path="/register" element={user ? <Navigate to={homeFor(user)} replace /> : <Register />} />
+      <Route path="/" element={isRootDomain() ? <PlatformLanding /> : <Landing />} />
+      <Route path="/login"    element={isRootDomain() ? <Navigate to="/" replace /> : user ? <Navigate to={homeFor(user)} replace /> : <Login />} />
+      <Route path="/register" element={isRootDomain() ? <Navigate to="/" replace /> : user ? <Navigate to={homeFor(user)} replace /> : <Register />} />
 
       {/* Parent routes */}
       <Route path="/dashboard"            element={<ProtectedRoute role="parent"><ParentDashboard /></ProtectedRoute>} />
