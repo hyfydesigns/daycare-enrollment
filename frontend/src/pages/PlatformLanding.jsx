@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const features = [
   { icon: '📋', title: 'Digital Enrollment Forms', desc: 'Parents complete Texas HHSC Form 2935 online — no paper, no printing, no lost forms.' },
@@ -109,7 +109,8 @@ export default function PlatformLanding() {
           </div>
           <div className="flex items-center gap-3">
             <a href="#pricing" className="text-sm text-gray-500 hover:text-gray-800 hidden sm:block">Pricing</a>
-            <a href={`mailto:${contactEmail}`} className="btn-secondary text-sm py-2 px-4">Contact Us</a>
+            <a href={`mailto:${contactEmail}`} className="text-sm text-gray-500 hover:text-gray-800 hidden sm:block">Contact</a>
+            <Link to="/signup" className="btn-primary text-sm py-2 px-4">Start Free Trial</Link>
           </div>
         </div>
       </header>
@@ -128,9 +129,9 @@ export default function PlatformLanding() {
             Replace paper enrollment packets with a branded online portal. Parents fill out Texas Form 2935 digitally — you review and approve from your dashboard.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <a href={`mailto:${contactEmail}?subject=EnrollPack Demo Request`} className="btn-primary text-base px-8 py-3">
-              Request a Demo
-            </a>
+            <Link to="/signup" className="btn-primary text-base px-8 py-3">
+              Start Free Trial
+            </Link>
             <a href="#pricing" className="btn-secondary text-base px-8 py-3">
               See Pricing
             </a>
@@ -220,18 +221,25 @@ export default function PlatformLanding() {
                   )}
 
                   {/* CTA */}
-                  <a
-                    href={`mailto:${contactEmail}?subject=EnrollPack ${plan.name} Plan`}
-                    className={`block text-center py-2.5 px-4 rounded-xl font-semibold text-sm transition-colors mt-auto ${
-                      plan.highlight
-                        ? 'bg-white text-primary-600 hover:bg-primary-50'
-                        : plan.free
-                        ? 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100'
-                        : 'bg-primary-500 text-white hover:bg-primary-600'
-                    }`}
-                  >
-                    {plan.cta}
-                  </a>
+                  {plan.free ? (
+                    <Link
+                      to="/signup"
+                      className="block text-center py-2.5 px-4 rounded-xl font-semibold text-sm transition-colors mt-auto bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"
+                    >
+                      {plan.cta}
+                    </Link>
+                  ) : (
+                    <a
+                      href={`mailto:${contactEmail}?subject=EnrollPack ${plan.name} Plan`}
+                      className={`block text-center py-2.5 px-4 rounded-xl font-semibold text-sm transition-colors mt-auto ${
+                        plan.highlight
+                          ? 'bg-white text-primary-600 hover:bg-primary-50'
+                          : 'bg-primary-500 text-white hover:bg-primary-600'
+                      }`}
+                    >
+                      {plan.cta}
+                    </a>
+                  )}
                 </div>
               </div>
             ))}

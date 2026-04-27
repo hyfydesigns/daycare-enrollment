@@ -617,6 +617,54 @@ async function sendPlanUpgrade({ to, adminName, org, oldPlan, loginUrl }) {
   });
 }
 
+/**
+ * Email verification sent to a new daycare admin after self-service signup.
+ * Uses EnrollPack platform branding. Must be clicked before they can log in.
+ *
+ * @param {object} opts
+ * @param {string} opts.to          Admin email
+ * @param {string} opts.adminName   Admin full name
+ * @param {object} opts.org         Full organizations DB row
+ * @param {string} opts.verifyUrl   https://enrollpack.com/verify-email?token=xxx
+ */
+async function sendEmailVerification({ to, adminName, org, verifyUrl }) {
+  const EP_COLOR  = '#f97316';
+  const firstName = adminName ? adminName.split(' ')[0] : 'there';
+
+  const body = `
+    ${h2(`Verify your email address ✉️`)}
+    ${p(`Hi ${firstName}, thanks for signing up! You're almost ready to start using EnrollPack for <strong>${org.name}</strong>.`)}
+    ${p('Click the button below to verify your email address and activate your account. This link expires in <strong>24 hours</strong>.')}
+
+    <div style="text-align:center;margin:32px 0;">
+      <a href="${verifyUrl}"
+        style="display:inline-block;padding:14px 36px;background:${EP_COLOR};color:#ffffff;font-weight:700;font-size:15px;border-radius:12px;text-decoration:none;letter-spacing:0.01em;"
+      >Verify My Email →</a>
+    </div>
+
+    ${divider()}
+    ${p('If the button doesn\'t work, copy and paste this link into your browser:', 'font-size:13px;color:#6b7280;')}
+    <p style="margin:0 0 20px;font-size:12px;color:#9ca3af;word-break:break-all;">
+      <a href="${verifyUrl}" style="color:${EP_COLOR};">${verifyUrl}</a>
+    </p>
+    ${p('If you didn\'t sign up for EnrollPack, you can safely ignore this email.', 'font-size:12px;color:#9ca3af;')}
+  `;
+
+  await send({
+    to,
+    subject: `Verify your email to activate ${org.name} on EnrollPack`,
+    html: wrapPlatform(body),
+  });
+}
+
 // ─── Exports ─────────────────────────────────────────────────────────────────
 
-module.exports = { sendWelcome, sendSubmissionConfirmation, sendAdminNewEnrollment, sendStatusUpdate, sendOrgWelcome, sendPlanUpgrade };
+module.exports = {
+  sendWelcome,
+  sendSubmissionConfirmation,
+  sendAdminNewEnrollment,
+  sendStatusUpdate,
+  sendOrgWelcome,
+  sendPlanUpgrade,
+  sendEmailVerification,
+};

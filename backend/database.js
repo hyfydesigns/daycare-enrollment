@@ -181,6 +181,16 @@ if (schemaVersion() < 4) {
   db.prepare('INSERT INTO schema_migrations (version) VALUES (4)').run();
 }
 
+// ─── Migration 5: Email verification for org admins ──────────────────────────
+if (schemaVersion() < 5) {
+  db.exec(`ALTER TABLE users ADD COLUMN email_verified          INTEGER NOT NULL DEFAULT 0`);
+  db.exec(`ALTER TABLE users ADD COLUMN verification_token      TEXT`);
+  db.exec(`ALTER TABLE users ADD COLUMN verification_token_expires_at TEXT`);
+  // All existing users were created internally — mark them verified
+  db.exec(`UPDATE users SET email_verified = 1`);
+  db.prepare('INSERT INTO schema_migrations (version) VALUES (5)').run();
+}
+
 db.exec('PRAGMA foreign_keys = ON');
 
 const isProd = process.env.NODE_ENV === 'production';

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useOrg } from '../contexts/OrgContext';
+import api from '../api/client';
 
 export default function Login() {
   const [params] = useSearchParams();
@@ -11,14 +12,20 @@ export default function Login() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({ email: isStaff ? 'admin@daycare.com' : '', password: '' });
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [error,          setError]          = useState('');
+  const [unverified,     setUnverified]     = useState(false);
+  const [resendEmail,    setResendEmail]    = useState('');
+  const [resent,         setResent]         = useState(false);
+  const [resending,      setResending]      = useState(false);
+  const [loading,        setLoading]        = useState(false);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setUnverified(false);
+    setResent(false);
     setLoading(true);
     try {
       const user = await login(form.email, form.password);
@@ -26,9 +33,28 @@ export default function Login() {
       else if (user.role === 'admin') navigate('/admin');
       else navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed. Please try again.');
+      const data = err.response?.data || {};
+      if (data.email_unverified) {
+        setUnverified(true);
+        setResendEmail(data.email || form.email);
+        setError(data.error);
+      } else {
+        setError(data.error || 'Login failed. Please try again.');
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const resendVerification = async () => {
+    setResending(true);
+    try {
+      await api.post('/auth/resend-verification', { email: resendEmail });
+      setResent(true);
+    } catch {
+      setResent(true); // still show success to prevent enumeration
+    } finally {
+      setResending(false);
     }
   };
 
@@ -67,6 +93,22 @@ export default function Login() {
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-700">
               {error}
+              {unverified && (
+                <div className="mt-2 pt-2 border-t border-red-100">
+                  {resent ? (
+                    <p className="text-green-700 font-medium">✓ Verification email sent — check your inbox.</p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={resendVerification}
+                      disabled={resending}
+                      className="text-red-700 font-semibold underline hover:no-underline"
+                    >
+                      {resending ? 'Sending…' : 'Resend verification email'}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

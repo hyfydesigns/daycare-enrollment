@@ -5,6 +5,8 @@ import { OrgProvider } from './contexts/OrgContext';
 
 import Landing from './pages/Landing';
 import PlatformLanding from './pages/PlatformLanding';
+import OrgSignup from './pages/OrgSignup';
+import VerifyEmail from './pages/VerifyEmail';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ParentDashboard from './pages/ParentDashboard';
@@ -55,6 +57,8 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={isRootDomain() ? <PlatformLanding /> : <Landing />} />
+      <Route path="/signup"       element={isRootDomain() ? <OrgSignup />  : <Navigate to="/" replace />} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/login"    element={isRootDomain() ? <Navigate to="/" replace /> : user ? <Navigate to={homeFor(user)} replace /> : <Login />} />
       <Route path="/register" element={isRootDomain() ? <Navigate to="/" replace /> : user ? <Navigate to={homeFor(user)} replace /> : <Register />} />
 
