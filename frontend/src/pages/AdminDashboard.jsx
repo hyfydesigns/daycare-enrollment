@@ -3,6 +3,73 @@ import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/client';
 import Navbar from '../components/Navbar';
 import StatusBadge from '../components/StatusBadge';
+import { useOrg } from '../contexts/OrgContext';
+
+const CONTACT_EMAIL = 'hello@enrollpack.com';
+const TRIAL_LIMIT   = 5;
+
+function TrialBanner({ stats, org }) {
+  if (!org || org.plan !== 'trial') return null;
+
+  const now      = new Date();
+  const endsAt   = org.trial_ends_at ? new Date(org.trial_ends_at) : null;
+  const msLeft   = endsAt ? endsAt - now : 0;
+  const daysLeft = endsAt ? Math.ceil(msLeft / (1000 * 60 * 60 * 24)) : 0;
+  const expired  = daysLeft <= 0;
+  const used     = stats.total ?? 0;
+  const usedPct  = Math.min((used / TRIAL_LIMIT) * 100, 100);
+  const limitHit = used >= TRIAL_LIMIT;
+
+  const upgradeHref = `mailto:${CONTACT_EMAIL}?subject=Upgrade from Trial Plan`;
+
+  if (expired) {
+    return (
+      <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex-1">
+          <p className="font-semibold text-red-700 text-sm">⛔ Your free trial has ended</p>
+          <p className="text-red-600 text-xs mt-0.5">New enrollments are paused. Upgrade to a paid plan to continue.</p>
+        </div>
+        <a href={upgradeHref} className="btn-primary text-sm py-2 px-5 whitespace-nowrap bg-red-600 hover:bg-red-700 border-red-600">
+          Upgrade Now →
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`mb-6 rounded-2xl border px-5 py-4 ${limitHit ? 'border-amber-300 bg-amber-50' : 'border-amber-200 bg-amber-50'}`}>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-sm font-semibold text-amber-800">
+              ⏳ Free Trial — {daysLeft} day{daysLeft !== 1 ? 's' : ''} remaining
+            </span>
+            {limitHit && (
+              <span className="text-xs font-semibold bg-red-100 text-red-600 px-2 py-0.5 rounded-full">Enrollment limit reached</span>
+            )}
+          </div>
+          {/* Enrollment usage bar */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 bg-amber-200 rounded-full h-2 overflow-hidden">
+              <div
+                className={`h-2 rounded-full transition-all ${usedPct >= 100 ? 'bg-red-500' : usedPct >= 80 ? 'bg-amber-500' : 'bg-amber-400'}`}
+                style={{ width: `${usedPct}%` }}
+              />
+            </div>
+            <span className="text-xs text-amber-700 whitespace-nowrap font-medium">{used} / {TRIAL_LIMIT} enrollments</span>
+          </div>
+          <p className="text-xs text-amber-600 mt-2">
+            Trial includes up to {TRIAL_LIMIT} enrollments and basic features.{' '}
+            <a href={upgradeHref} className="underline font-medium hover:text-amber-800">Upgrade</a> for unlimited enrollments and custom branding.
+          </p>
+        </div>
+        <a href={upgradeHref} className="btn-primary text-sm py-2 px-5 whitespace-nowrap flex-shrink-0">
+          Upgrade Plan →
+        </a>
+      </div>
+    </div>
+  );
+}
 
 const STATUS_OPTIONS = [
   { value: 'all', label: 'All Statuses' },
@@ -21,6 +88,7 @@ function fmt(dt) {
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const { org } = useOrg();
   const [enrollments, setEnrollments] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
@@ -55,6 +123,9 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-warm-50">
       <Navbar />
       <div className="max-w-6xl mx-auto px-4 py-8">
+
+        <TrialBanner stats={stats} org={org} />
+
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 mb-1">Enrollment Dashboard</h1>

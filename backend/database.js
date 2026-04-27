@@ -168,6 +168,19 @@ if (schemaVersion() < 3) {
   db.prepare('INSERT INTO schema_migrations (version) VALUES (3)').run();
 }
 
+// ─── Migration 4: Add trial_ends_at column ───────────────────────────────────
+if (schemaVersion() < 4) {
+  // Add column — SQLite supports ADD COLUMN directly
+  db.exec(`ALTER TABLE organizations ADD COLUMN trial_ends_at TEXT`);
+  // Back-fill trial orgs: 14-day window from their creation date
+  db.exec(`
+    UPDATE organizations
+    SET trial_ends_at = datetime(created_at, '+14 days')
+    WHERE plan = 'trial' AND trial_ends_at IS NULL
+  `);
+  db.prepare('INSERT INTO schema_migrations (version) VALUES (4)').run();
+}
+
 db.exec('PRAGMA foreign_keys = ON');
 
 const isProd = process.env.NODE_ENV === 'production';

@@ -39,16 +39,18 @@ router.post('/orgs', (req, res) => {
   const existing = db.prepare('SELECT id FROM organizations WHERE slug = ?').get(slug);
   if (existing) return res.status(409).json({ error: 'Slug already taken' });
 
+  const chosenPlan = plan || 'trial';
   const orgResult = db.prepare(`
-    INSERT INTO organizations (name, slug, owner_email, primary_color, tagline, plan)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO organizations (name, slug, owner_email, primary_color, tagline, plan, trial_ends_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `).run(
     name,
     slug.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
     owner_email,
     primary_color || '#f97316',
     tagline || null,
-    plan || 'trial',
+    chosenPlan,
+    chosenPlan === 'trial' ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() : null,
   );
 
   const orgId = orgResult.lastInsertRowid;
@@ -66,8 +68,21 @@ router.post('/orgs', (req, res) => {
 router.patch('/orgs/:id', (req, res) => {
   const { name, slug, primary_color, accent_color, tagline, plan, logo_url } = req.body;
 
-  const org = db.prepare('SELECT id FROM organizations WHERE id = ?').get(req.params.id);
+  const org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(req.params.id);
   if (!org) return res.status(404).json({ error: 'Organization not found' });
+
+  // Manage trial_ends_at when plan changes:
+  //   trial → paid:  clear it (unlimited time on paid plan)
+  //   paid  → trial: set a fresh 14-day window from now
+  //   no change:     leave it alone
+  let trialEndsAt = undefined; // undefined = don't touch the column
+  if (plan && plan !== org.plan) {
+    if (plan === 'trial') {
+      trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+    } else {
+      trialEndsAt = null; // clear for paid / inactive plans
+    }
+  }
 
   db.prepare(`
     UPDATE organizations
@@ -77,9 +92,15 @@ router.patch('/orgs/:id', (req, res) => {
         accent_color  = COALESCE(?, accent_color),
         tagline       = COALESCE(?, tagline),
         plan          = COALESCE(?, plan),
-        logo_url      = COALESCE(?, logo_url)
+        logo_url      = COALESCE(?, logo_url),
+        trial_ends_at = CASE WHEN ? THEN ? ELSE trial_ends_at END
     WHERE id = ?
-  `).run(name||null, slug||null, primary_color||null, accent_color||null, tagline||null, plan||null, logo_url||null, req.params.id);
+  `).run(
+    name||null, slug||null, primary_color||null, accent_color||null,
+    tagline||null, plan||null, logo_url||null,
+    trialEndsAt !== undefined ? 1 : 0, trialEndsAt !== undefined ? trialEndsAt : null,
+    req.params.id,
+  );
 
   res.json(db.prepare('SELECT * FROM organizations WHERE id = ?').get(req.params.id));
 });

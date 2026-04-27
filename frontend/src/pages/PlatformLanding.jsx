@@ -12,22 +12,61 @@ const features = [
 
 const plans = [
   {
+    name: 'Trial',
+    price: 'Free',
+    period: '',
+    badge: '14 days',
+    desc: 'Try EnrollPack risk-free. No credit card needed.',
+    features: [
+      'Up to 5 enrollments',
+      'Parent portal',
+      'Admin dashboard',
+      'Print-ready forms',
+      'EnrollPack branding',
+    ],
+    limits: ['5 enrollment cap', 'No custom branding', 'No logo upload'],
+    cta: 'Start Free Trial',
+    highlight: false,
+    free: true,
+  },
+  {
     name: 'Starter',
     price: '$29',
     period: '/month',
-    desc: 'Perfect for small daycares just getting started.',
-    features: ['Unlimited enrollments', 'Parent portal', 'Admin dashboard', 'Print-ready forms', 'Email support'],
+    badge: null,
+    desc: 'Perfect for small daycares ready to go paperless.',
+    features: [
+      'Unlimited enrollments',
+      'Parent portal',
+      'Admin dashboard',
+      'Print-ready forms',
+      'Custom name & colors',
+      'Logo upload',
+      'Email support',
+    ],
+    limits: [],
     cta: 'Get Started',
     highlight: false,
+    free: false,
   },
   {
     name: 'Pro',
     price: '$79',
     period: '/month',
+    badge: 'Most Popular',
     desc: 'For growing daycares that want the full experience.',
-    features: ['Everything in Starter', 'Custom branding & colors', 'Custom logo', 'Priority support', 'Multiple staff accounts'],
+    features: [
+      'Everything in Starter',
+      'White-label emails',
+      'Custom email branding',
+      'Priority support',
+      'Multiple staff accounts',
+      'Advanced org settings',
+    ],
+    limits: [],
     cta: 'Get Started',
     highlight: true,
+    free: false,
   },
 ];
 
@@ -116,40 +155,91 @@ export default function PlatformLanding() {
 
       {/* Pricing */}
       <section id="pricing" className="bg-gray-50 py-20 px-4">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-center text-2xl font-bold text-gray-900 mb-2">Simple pricing</h2>
-          <p className="text-center text-gray-500 mb-12">No setup fees. Cancel any time.</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-center text-2xl font-bold text-gray-900 mb-2">Simple, transparent pricing</h2>
+          <p className="text-center text-gray-500 mb-12">Start free. Upgrade when you're ready. No setup fees.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 items-stretch">
             {plans.map((plan) => (
-              <div key={plan.name} className={`rounded-2xl p-8 ${plan.highlight ? 'bg-primary-500 text-white shadow-lg' : 'bg-white border border-gray-200'}`}>
-                <div className={`text-sm font-semibold mb-1 ${plan.highlight ? 'text-primary-100' : 'text-gray-500'}`}>{plan.name}</div>
-                <div className="flex items-end gap-1 mb-1">
-                  <span className={`text-4xl font-bold ${plan.highlight ? 'text-white' : 'text-gray-900'}`}>{plan.price}</span>
-                  <span className={`text-sm mb-1 ${plan.highlight ? 'text-primary-100' : 'text-gray-400'}`}>{plan.period}</span>
+              <div
+                key={plan.name}
+                className={`relative rounded-2xl flex flex-col ${
+                  plan.highlight
+                    ? 'bg-primary-500 text-white shadow-xl ring-2 ring-primary-400'
+                    : plan.free
+                    ? 'bg-white border-2 border-dashed border-gray-200'
+                    : 'bg-white border border-gray-200'
+                }`}
+              >
+                {/* Badge */}
+                {plan.badge && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className={`text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap ${
+                      plan.highlight ? 'bg-white text-primary-600' : 'bg-amber-100 text-amber-700'
+                    }`}>
+                      {plan.badge}
+                    </span>
+                  </div>
+                )}
+
+                <div className="p-7 flex flex-col flex-1">
+                  {/* Plan name */}
+                  <div className={`text-xs font-bold uppercase tracking-widest mb-3 ${plan.highlight ? 'text-primary-100' : plan.free ? 'text-amber-600' : 'text-gray-400'}`}>
+                    {plan.name}
+                  </div>
+
+                  {/* Price */}
+                  <div className="flex items-end gap-1 mb-1">
+                    <span className={`text-4xl font-extrabold leading-none ${plan.highlight ? 'text-white' : 'text-gray-900'}`}>
+                      {plan.price}
+                    </span>
+                    {plan.period && (
+                      <span className={`text-sm mb-1 ${plan.highlight ? 'text-primary-100' : 'text-gray-400'}`}>{plan.period}</span>
+                    )}
+                  </div>
+                  <p className={`text-sm mb-5 ${plan.highlight ? 'text-primary-100' : 'text-gray-500'}`}>{plan.desc}</p>
+
+                  {/* Included features */}
+                  <ul className="space-y-2 mb-4 flex-1">
+                    {plan.features.map((f, i) => (
+                      <li key={i} className={`flex items-start gap-2 text-sm ${plan.highlight ? 'text-white' : 'text-gray-700'}`}>
+                        <span className={`mt-0.5 flex-shrink-0 ${plan.highlight ? 'text-primary-200' : 'text-primary-500'}`}>✓</span>
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* Limitations (trial only) */}
+                  {plan.limits && plan.limits.length > 0 && (
+                    <ul className="space-y-1.5 mb-5 pt-3 border-t border-gray-100">
+                      {plan.limits.map((l, i) => (
+                        <li key={i} className="flex items-start gap-2 text-xs text-gray-400">
+                          <span className="mt-0.5 flex-shrink-0">–</span> {l}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {/* CTA */}
+                  <a
+                    href={`mailto:${contactEmail}?subject=EnrollPack ${plan.name} Plan`}
+                    className={`block text-center py-2.5 px-4 rounded-xl font-semibold text-sm transition-colors mt-auto ${
+                      plan.highlight
+                        ? 'bg-white text-primary-600 hover:bg-primary-50'
+                        : plan.free
+                        ? 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100'
+                        : 'bg-primary-500 text-white hover:bg-primary-600'
+                    }`}
+                  >
+                    {plan.cta}
+                  </a>
                 </div>
-                <p className={`text-sm mb-6 ${plan.highlight ? 'text-primary-100' : 'text-gray-500'}`}>{plan.desc}</p>
-                <ul className="space-y-2 mb-8">
-                  {plan.features.map((f, i) => (
-                    <li key={i} className={`flex items-center gap-2 text-sm ${plan.highlight ? 'text-white' : 'text-gray-700'}`}>
-                      <span className={plan.highlight ? 'text-primary-200' : 'text-primary-500'}>✓</span> {f}
-                    </li>
-                  ))}
-                </ul>
-                <a
-                  href={`mailto:${contactEmail}?subject=EnrollPack ${plan.name} Plan`}
-                  className={`block text-center py-2.5 px-4 rounded-xl font-semibold text-sm transition-colors ${
-                    plan.highlight
-                      ? 'bg-white text-primary-600 hover:bg-primary-50'
-                      : 'bg-primary-500 text-white hover:bg-primary-600'
-                  }`}
-                >
-                  {plan.cta}
-                </a>
               </div>
             ))}
           </div>
-          <p className="text-center text-sm text-gray-400 mt-6">
-            All plans include a free trial period. <a href={`mailto:${contactEmail}`} className="text-primary-500 hover:underline">Contact us</a> to get started.
+
+          <p className="text-center text-sm text-gray-400 mt-8">
+            All paid plans include a free onboarding call.{' '}
+            <a href={`mailto:${contactEmail}`} className="text-primary-500 hover:underline">Questions? Contact us.</a>
           </p>
         </div>
       </section>

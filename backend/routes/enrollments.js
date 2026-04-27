@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../database');
 const { authenticate } = require('../middleware/auth');
 const { sendSubmissionConfirmation, sendAdminNewEnrollment } = require('../services/email');
+const { TRIAL_ENROLLMENT_LIMIT } = require('./org');
 
 const router = express.Router();
 router.use(authenticate);
@@ -31,6 +32,28 @@ router.get('/:id', (req, res) => {
 router.post('/', (req, res) => {
   if (req.user.role !== 'parent') {
     return res.status(403).json({ error: 'Only parents can create enrollments' });
+  }
+
+  // Trial plan: enforce enrollment cap
+  const org = db.prepare('SELECT plan, trial_ends_at FROM organizations WHERE id = ?').get(req.user.org_id);
+  if (org && org.plan === 'trial') {
+    // Check if trial has expired
+    if (org.trial_ends_at && new Date(org.trial_ends_at) < new Date()) {
+      return res.status(403).json({
+        error: 'Your free trial has expired. Contact your daycare administrator to upgrade.',
+        trial_expired: true,
+      });
+    }
+    // Check enrollment cap
+    const { count } = db.prepare('SELECT COUNT(*) AS count FROM enrollments WHERE org_id = ?').get(req.user.org_id);
+    if (count >= TRIAL_ENROLLMENT_LIMIT) {
+      return res.status(403).json({
+        error: `Your daycare is on the free Trial plan, which is limited to ${TRIAL_ENROLLMENT_LIMIT} enrollments. Contact your administrator to upgrade.`,
+        trial_limit_reached: true,
+        limit: TRIAL_ENROLLMENT_LIMIT,
+        count,
+      });
+    }
   }
 
   const { form_data = {} } = req.body;
