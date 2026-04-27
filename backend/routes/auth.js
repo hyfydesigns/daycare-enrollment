@@ -45,8 +45,7 @@ router.post('/register', resolveOrg, (req, res) => {
   sendWelcome({
     to: email.toLowerCase().trim(),
     parentName: full_name.trim(),
-    orgName: req.org.name,
-    orgColor: req.org.primary_color || '#f97316',
+    org: req.org,
     dashboardUrl,
   });
 

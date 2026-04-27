@@ -96,8 +96,7 @@ router.patch('/enrollments/:id/status', (req, res) => {
         childName: enrollment.child_name,
         status,
         adminNotes: admin_notes || null,
-        orgName: org.name,
-        orgColor: org.primary_color || '#f97316',
+        org,
         dashboardUrl: `https://${org.slug}.${appDomain}/dashboard`,
       });
     }

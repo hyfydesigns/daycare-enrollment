@@ -105,14 +105,12 @@ router.post('/:id/submit', (req, res) => {
     const appDomain = process.env.APP_DOMAIN || 'enrollpack.com';
     const dashboardUrl = `https://${org.slug}.${appDomain}/dashboard`;
     const reviewUrl = `https://${org.slug}.${appDomain}/admin/enrollment/${updated.id}`;
-    const color = org.primary_color || '#f97316';
 
     sendSubmissionConfirmation({
       to: parent.email,
       parentName: parent.full_name,
       childName: updated.child_name,
-      orgName: org.name,
-      orgColor: color,
+      org,
       dashboardUrl,
     });
 
@@ -122,8 +120,7 @@ router.post('/:id/submit', (req, res) => {
         childName: updated.child_name,
         parentName: parent.full_name,
         parentEmail: parent.email,
-        orgName: org.name,
-        orgColor: color,
+        org,
         reviewUrl,
       });
     }
