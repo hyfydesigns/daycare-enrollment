@@ -267,6 +267,8 @@ export default function PlatformLanding() {
       <footer className="border-t border-gray-100 py-6 text-center text-xs text-gray-400">
         © {new Date().getFullYear()} EnrollPack ·{' '}
         <a href={`mailto:${contactEmail}`} className="hover:text-gray-600">{contactEmail}</a>
+        {' '}·{' '}
+        <Link to="/admin" className="hover:text-gray-600">Admin</Link>
       </footer>
     </div>
   );

@@ -15,6 +15,7 @@ import ReviewSubmit from './pages/ReviewSubmit';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminFormReview from './pages/AdminFormReview';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
+import SuperAdminLogin from './pages/SuperAdminLogin';
 import OrgSettings from './pages/OrgSettings';
 import PrintView from './pages/PrintView';
 import Help from './pages/Help';
@@ -57,7 +58,8 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={isRootDomain() ? <PlatformLanding /> : <Landing />} />
-      <Route path="/signup"       element={isRootDomain() ? <OrgSignup />  : <Navigate to="/" replace />} />
+      <Route path="/signup"       element={isRootDomain() ? <OrgSignup />     : <Navigate to="/" replace />} />
+      <Route path="/admin"        element={isRootDomain() ? (user ? <Navigate to={homeFor(user)} replace /> : <SuperAdminLogin />) : <Navigate to="/" replace />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/login"    element={isRootDomain() ? <Navigate to="/" replace /> : user ? <Navigate to={homeFor(user)} replace /> : <Login />} />
       <Route path="/register" element={isRootDomain() ? <Navigate to="/" replace /> : user ? <Navigate to={homeFor(user)} replace /> : <Register />} />
