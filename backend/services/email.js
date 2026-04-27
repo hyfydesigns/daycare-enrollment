@@ -618,6 +618,45 @@ async function sendPlanUpgrade({ to, adminName, org, oldPlan, loginUrl }) {
 }
 
 /**
+ * Password reset email — uses the org's branding (starter or pro tier).
+ *
+ * @param {object} opts
+ * @param {string} opts.to        User email
+ * @param {string} opts.userName  User full name
+ * @param {object} opts.org       Full organizations DB row
+ * @param {string} opts.resetUrl  https://<slug>.enrollpack.com/reset-password?token=xxx
+ */
+async function sendPasswordReset({ to, userName, org, resetUrl }) {
+  const color     = org.primary_color || '#f97316';
+  const firstName = userName ? userName.split(' ')[0] : 'there';
+
+  const body = `
+    ${h2('Reset your password 🔑')}
+    ${p(`Hi ${firstName}, we received a request to reset the password for your <strong>${org.name}</strong> account.`)}
+    ${p('Click the button below to choose a new password. This link expires in <strong>1 hour</strong>.')}
+
+    <div style="text-align:center;margin:32px 0;">
+      <a href="${resetUrl}"
+        style="display:inline-block;padding:14px 36px;background:${color};color:#ffffff;font-weight:700;font-size:15px;border-radius:12px;text-decoration:none;letter-spacing:0.01em;"
+      >Reset My Password →</a>
+    </div>
+
+    ${divider()}
+    ${p('If the button doesn\'t work, copy and paste this link into your browser:', 'font-size:13px;color:#6b7280;')}
+    <p style="margin:0 0 20px;font-size:12px;color:#9ca3af;word-break:break-all;">
+      <a href="${resetUrl}" style="color:${color};">${resetUrl}</a>
+    </p>
+    ${p('If you didn\'t request a password reset, you can safely ignore this email — your password won\'t change.', 'font-size:12px;color:#9ca3af;')}
+  `;
+
+  await send({
+    to,
+    subject: `Reset your ${org.name} password`,
+    html: wrap(org, body),
+  });
+}
+
+/**
  * Email verification sent to a new daycare admin after self-service signup.
  * Uses EnrollPack platform branding. Must be clicked before they can log in.
  *
@@ -667,4 +706,5 @@ module.exports = {
   sendOrgWelcome,
   sendPlanUpgrade,
   sendEmailVerification,
+  sendPasswordReset,
 };

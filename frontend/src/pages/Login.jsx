@@ -84,12 +84,6 @@ export default function Login() {
         </div>
 
         <div className="card">
-          {isStaff && (
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-700">
-              Default credentials: <strong>admin@daycare.com</strong> / <strong>Admin1234!</strong>
-            </div>
-          )}
-
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-700">
               {error}
@@ -118,7 +112,12 @@ export default function Login() {
               <input type="email" className="form-input" value={form.email} onChange={set('email')} required autoFocus />
             </div>
             <div>
-              <label className="form-label">Password</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="form-label !mb-0">Password</label>
+                <Link to="/forgot-password" className="text-xs text-primary-600 hover:underline">
+                  Forgot password?
+                </Link>
+              </div>
               <input type="password" className="form-input" value={form.password} onChange={set('password')} required />
             </div>
             <button type="submit" className="btn-primary w-full" disabled={loading}>

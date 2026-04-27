@@ -278,6 +278,55 @@ router.post('/login', resolveOrg, (req, res) => {
   });
 });
 
+// ─── Forgot password — scoped to org ─────────────────────────────────────────
+router.post('/forgot-password', resolveOrg, (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'Email is required.' });
+
+  const user = db.prepare(
+    'SELECT * FROM users WHERE email = ? AND org_id = ?'
+  ).get(email.toLowerCase().trim(), req.org.id);
+
+  // Always respond 200 to prevent email enumeration
+  if (user) {
+    const token      = generateToken();
+    const expires    = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
+    db.prepare(
+      'UPDATE users SET reset_token = ?, reset_token_expires_at = ? WHERE id = ?'
+    ).run(token, expires, user.id);
+
+    const appDomain = process.env.APP_DOMAIN || 'enrollpack.com';
+    const resetUrl  = `https://${req.org.slug}.${appDomain}/reset-password?token=${token}`;
+    const { sendPasswordReset } = require('../services/email');
+    sendPasswordReset({ to: user.email, userName: user.full_name, org: req.org, resetUrl });
+  }
+
+  res.json({ message: 'If an account with that email exists, a reset link has been sent.' });
+});
+
+// ─── Reset password ───────────────────────────────────────────────────────────
+router.post('/reset-password', (req, res) => {
+  const { token, password } = req.body;
+  if (!token || !password) return res.status(400).json({ error: 'Token and new password are required.' });
+  if (password.length < 8)  return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+
+  const user = db.prepare('SELECT * FROM users WHERE reset_token = ?').get(token);
+
+  if (!user) {
+    return res.status(400).json({ error: 'Invalid or already used reset link.' });
+  }
+  if (new Date(user.reset_token_expires_at) < new Date()) {
+    return res.status(400).json({ error: 'This reset link has expired. Please request a new one.', expired: true });
+  }
+
+  const hash = bcrypt.hashSync(password, 12);
+  db.prepare(
+    'UPDATE users SET password_hash = ?, reset_token = NULL, reset_token_expires_at = NULL WHERE id = ?'
+  ).run(hash, user.id);
+
+  res.json({ message: 'Password updated successfully. You can now log in.' });
+});
+
 // ─── Current user profile ─────────────────────────────────────────────────────
 router.get('/me', authenticate, (req, res) => {
   const user = db.prepare(

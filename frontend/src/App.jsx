@@ -7,6 +7,8 @@ import Landing from './pages/Landing';
 import PlatformLanding from './pages/PlatformLanding';
 import OrgSignup from './pages/OrgSignup';
 import VerifyEmail from './pages/VerifyEmail';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ParentDashboard from './pages/ParentDashboard';
@@ -61,8 +63,10 @@ function AppRoutes() {
       <Route path="/signup"       element={isRootDomain() ? <OrgSignup />     : <Navigate to="/" replace />} />
       <Route path="/admin"        element={isRootDomain() ? (user ? <Navigate to={homeFor(user)} replace /> : <SuperAdminLogin />) : <Navigate to="/" replace />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
-      <Route path="/login"    element={isRootDomain() ? <Navigate to="/" replace /> : user ? <Navigate to={homeFor(user)} replace /> : <Login />} />
-      <Route path="/register" element={isRootDomain() ? <Navigate to="/" replace /> : user ? <Navigate to={homeFor(user)} replace /> : <Register />} />
+      <Route path="/login"            element={isRootDomain() ? <Navigate to="/" replace /> : user ? <Navigate to={homeFor(user)} replace /> : <Login />} />
+      <Route path="/register"         element={isRootDomain() ? <Navigate to="/" replace /> : user ? <Navigate to={homeFor(user)} replace /> : <Register />} />
+      <Route path="/forgot-password"  element={isRootDomain() ? <Navigate to="/" replace /> : <ForgotPassword />} />
+      <Route path="/reset-password"   element={isRootDomain() ? <Navigate to="/" replace /> : <ResetPassword />} />
 
       {/* Parent routes */}
       <Route path="/dashboard"            element={<ProtectedRoute role="parent"><ParentDashboard /></ProtectedRoute>} />

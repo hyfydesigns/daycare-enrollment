@@ -182,6 +182,7 @@ if (schemaVersion() < 4) {
 }
 
 // ─── Migration 5: Email verification for org admins ──────────────────────────
+
 if (schemaVersion() < 5) {
   db.exec(`ALTER TABLE users ADD COLUMN email_verified          INTEGER NOT NULL DEFAULT 0`);
   db.exec(`ALTER TABLE users ADD COLUMN verification_token      TEXT`);
@@ -189,6 +190,13 @@ if (schemaVersion() < 5) {
   // All existing users were created internally — mark them verified
   db.exec(`UPDATE users SET email_verified = 1`);
   db.prepare('INSERT INTO schema_migrations (version) VALUES (5)').run();
+}
+
+// ─── Migration 6: Password reset tokens ──────────────────────────────────────
+if (schemaVersion() < 6) {
+  db.exec(`ALTER TABLE users ADD COLUMN reset_token            TEXT`);
+  db.exec(`ALTER TABLE users ADD COLUMN reset_token_expires_at TEXT`);
+  db.prepare('INSERT INTO schema_migrations (version) VALUES (6)').run();
 }
 
 db.exec('PRAGMA foreign_keys = ON');
