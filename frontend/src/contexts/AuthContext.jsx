@@ -34,6 +34,14 @@ export function AuthProvider({ children }) {
     return data.user;
   };
 
+  // Used by flows that call their own API endpoint (e.g. superadmin login)
+  // and just need to persist the resulting token + user into auth state.
+  const setUserFromToken = (token, userData) => {
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(userData));
+    setUser(userData);
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -41,7 +49,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, setUserFromToken }}>
       {children}
     </AuthContext.Provider>
   );

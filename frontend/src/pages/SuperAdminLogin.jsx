@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import api from '../api/client';
 
 export default function SuperAdminLogin() {
-  const { login } = useAuth();
-  const navigate  = useNavigate();
+  const { setUserFromToken } = useAuth();
+  const navigate = useNavigate();
 
   const [form,    setForm]    = useState({ email: '', password: '' });
   const [error,   setError]   = useState('');
@@ -17,11 +18,11 @@ export default function SuperAdminLogin() {
     setError('');
     setLoading(true);
     try {
-      const user = await login(form.email, form.password);
-      if (user.role !== 'superadmin') {
-        setError('This login is for platform administrators only.');
-        return;
-      }
+      const { data } = await api.post('/auth/superadmin-login', {
+        email:    form.email.trim(),
+        password: form.password,
+      });
+      setUserFromToken(data.token, data.user);
       navigate('/superadmin');
     } catch (err) {
       setError(err.response?.data?.error || 'Login failed. Please try again.');

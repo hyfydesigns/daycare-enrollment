@@ -170,6 +170,33 @@ router.post('/resend-verification', (req, res) => {
   res.json({ message: 'If that email is registered and unverified, you will receive a new link shortly.' });
 });
 
+// ─── Superadmin login — no org context required ──────────────────────────────
+router.post('/superadmin-login', (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required' });
+  }
+
+  const user = db.prepare(
+    "SELECT * FROM users WHERE email = ? AND role = 'superadmin' LIMIT 1"
+  ).get(email.toLowerCase().trim());
+
+  if (!user || !bcrypt.compareSync(password, user.password_hash)) {
+    return res.status(401).json({ error: 'Invalid email or password' });
+  }
+
+  const token = jwt.sign(
+    { id: user.id, email: user.email, role: user.role, full_name: user.full_name, org_id: null },
+    JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+
+  res.json({
+    token,
+    user: { id: user.id, email: user.email, full_name: user.full_name, role: user.role, org_id: null },
+  });
+});
+
 // ─── Register a new parent — scoped to the current org ───────────────────────
 router.post('/register', resolveOrg, (req, res) => {
   const { email, password, full_name, phone } = req.body;
