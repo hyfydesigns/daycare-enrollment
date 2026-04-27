@@ -115,6 +115,7 @@ function EditOrgModal({ org, onClose, onUpdated }) {
   const [form, setForm] = useState({
     name:          org.name          || '',
     slug:          org.slug          || '',
+    owner_email:   org.owner_email   || '',
     tagline:       org.tagline       || '',
     primary_color: org.primary_color || '#f97316',
     accent_color:  org.accent_color  || '#1f2937',
@@ -156,6 +157,12 @@ function EditOrgModal({ org, onClose, onUpdated }) {
               <label className="block text-sm font-medium text-gray-700 mb-1">Organization Name</label>
               <input className="form-input" required value={form.name}
                 onChange={e => set('name', e.target.value)} />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Admin Email</label>
+              <input className="form-input" type="email" value={form.owner_email}
+                onChange={e => set('owner_email', e.target.value)} placeholder="admin@daycare.com" />
+              <p className="text-xs text-gray-400 mt-1">Contact email for this organization's administrator.</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Slug</label>

@@ -77,7 +77,7 @@ router.post('/orgs', (req, res) => {
 
 // Update org (plan, branding, status)
 router.patch('/orgs/:id', (req, res) => {
-  const { name, slug, primary_color, accent_color, tagline, plan, logo_url } = req.body;
+  const { name, slug, owner_email, primary_color, accent_color, tagline, plan, logo_url } = req.body;
 
   const org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(req.params.id);
   if (!org) return res.status(404).json({ error: 'Organization not found' });
@@ -99,6 +99,7 @@ router.patch('/orgs/:id', (req, res) => {
     UPDATE organizations
     SET name          = COALESCE(?, name),
         slug          = COALESCE(?, slug),
+        owner_email   = COALESCE(?, owner_email),
         primary_color = COALESCE(?, primary_color),
         accent_color  = COALESCE(?, accent_color),
         tagline       = COALESCE(?, tagline),
@@ -107,7 +108,7 @@ router.patch('/orgs/:id', (req, res) => {
         trial_ends_at = CASE WHEN ? THEN ? ELSE trial_ends_at END
     WHERE id = ?
   `).run(
-    name||null, slug||null, primary_color||null, accent_color||null,
+    name||null, slug||null, owner_email||null, primary_color||null, accent_color||null,
     tagline||null, plan||null, logo_url||null,
     trialEndsAt !== undefined ? 1 : 0, trialEndsAt !== undefined ? trialEndsAt : null,
     req.params.id,
