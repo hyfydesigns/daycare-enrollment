@@ -67,6 +67,64 @@ function detailRow(label, value, accentColor = '#f97316') {
     </tr>`;
 }
 
+// ─── Platform wrapper ────────────────────────────────────────────────────────
+// EnrollPack-branded emails sent FROM the platform TO daycare admins.
+// Always uses EnrollPack orange — independent of any org's branding.
+
+function wrapPlatform(body) {
+  const EP_COLOR = '#f97316';
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>EnrollPack</title>
+</head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="100%" style="max-width:580px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);">
+
+        <!-- Header -->
+        <tr>
+          <td style="background:${EP_COLOR};padding:24px 36px;">
+            <table cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="vertical-align:middle;padding-right:10px;">
+                  <div style="width:36px;height:36px;background:rgba(255,255,255,0.25);border-radius:10px;display:inline-flex;align-items:center;justify-content:center;">
+                    <span style="color:#fff;font-size:16px;font-weight:900;line-height:1;">EP</span>
+                  </div>
+                </td>
+                <td style="vertical-align:middle;">
+                  <p style="margin:0;color:#ffffff;font-size:20px;font-weight:800;letter-spacing:-0.3px;">EnrollPack</p>
+                  <p style="margin:2px 0 0;color:rgba(255,255,255,0.75);font-size:12px;">Daycare enrollment, simplified.</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr><td style="padding:36px;">${body}</td></tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="padding:16px 36px 24px;border-top:1px solid #f3f4f6;">
+            <p style="margin:0;font-size:11px;color:#9ca3af;text-align:center;">
+              <a href="https://enrollpack.com" style="color:${EP_COLOR};text-decoration:none;font-weight:600;">EnrollPack</a>
+              &nbsp;·&nbsp;
+              <a href="mailto:hello@enrollpack.com" style="color:#9ca3af;text-decoration:none;">hello@enrollpack.com</a>
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
 // ─── Starter wrapper ─────────────────────────────────────────────────────────
 // Simple solid-color header + "Powered by EnrollPack" footer
 
@@ -414,6 +472,151 @@ async function sendStatusUpdate({ to, parentName, childName, status, adminNotes,
   await send({ to, subject, html: wrap(org, body) });
 }
 
+/**
+ * Welcome email sent to a daycare admin when their org is first created.
+ * Uses EnrollPack platform branding (not org branding).
+ *
+ * @param {object} opts
+ * @param {string} opts.to          Admin email
+ * @param {string} opts.adminName   Admin full name
+ * @param {object} opts.org         Full organizations DB row
+ * @param {string} opts.loginUrl    https://<slug>.enrollpack.com/login
+ */
+async function sendOrgWelcome({ to, adminName, org, loginUrl }) {
+  const EP_COLOR  = '#f97316';
+  const firstName = adminName ? adminName.split(' ')[0] : 'there';
+  const isTrial   = org.plan === 'trial';
+
+  const trialNote = isTrial
+    ? `<div style="margin:24px 0;padding:16px 18px;background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;">
+         <p style="margin:0 0 4px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#c2410c;">Free Trial — 30 Days</p>
+         <p style="margin:0;font-size:14px;color:#7c2d12;line-height:1.6;">
+           Your trial includes up to 5 enrollments. <a href="mailto:hello@enrollpack.com?subject=Upgrade from Trial" style="color:${EP_COLOR};font-weight:600;">Contact us to upgrade</a> whenever you're ready.
+         </p>
+       </div>`
+    : '';
+
+  const planLabel = { trial: 'Free Trial', starter: 'Starter', pro: 'Pro', inactive: 'Inactive' }[org.plan] || org.plan;
+
+  const body = `
+    ${h2(`Welcome to EnrollPack, ${firstName}! 🎉`)}
+    ${p(`Your <strong>${org.name}</strong> enrollment portal is ready. Parents can now register and submit forms online — no more paper packets.`)}
+
+    ${trialNote}
+
+    <table cellpadding="0" cellspacing="0" style="width:100%;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;margin:20px 0;">
+      ${detailRow('Portal URL', `<a href="${loginUrl}" style="color:${EP_COLOR};text-decoration:none;font-weight:600;">${loginUrl.replace('/login','')}</a>`)}
+      ${detailRow('Your login', to)}
+      ${detailRow('Plan', planLabel)}
+    </table>
+
+    ${p('Here\'s how to get started:', 'font-weight:600;color:#111827;margin-bottom:8px;')}
+    <table cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:20px;">
+      <tr>
+        <td style="padding:8px 0;vertical-align:top;">
+          <span style="display:inline-block;width:24px;height:24px;background:${EP_COLOR};border-radius:50%;color:#fff;font-size:12px;font-weight:700;text-align:center;line-height:24px;flex-shrink:0;">1</span>
+        </td>
+        <td style="padding:8px 0 8px 10px;font-size:14px;color:#374151;">Log in to your admin dashboard and review your settings.</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;vertical-align:top;">
+          <span style="display:inline-block;width:24px;height:24px;background:${EP_COLOR};border-radius:50%;color:#fff;font-size:12px;font-weight:700;text-align:center;line-height:24px;flex-shrink:0;">2</span>
+        </td>
+        <td style="padding:8px 0 8px 10px;font-size:14px;color:#374151;">Share your portal link with parents so they can register and enroll.</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;vertical-align:top;">
+          <span style="display:inline-block;width:24px;height:24px;background:${EP_COLOR};border-radius:50%;color:#fff;font-size:12px;font-weight:700;text-align:center;line-height:24px;flex-shrink:0;">3</span>
+        </td>
+        <td style="padding:8px 0 8px 10px;font-size:14px;color:#374151;">Review and approve submissions from your dashboard.</td>
+      </tr>
+    </table>
+
+    ${btn('Go to My Dashboard →', loginUrl, EP_COLOR)}
+    ${p('Questions? Reply to this email or reach us at <a href="mailto:hello@enrollpack.com" style="color:' + EP_COLOR + ';">hello@enrollpack.com</a>.', 'font-size:13px;color:#6b7280;margin-top:20px;')}
+  `;
+
+  await send({
+    to,
+    subject: `Your ${org.name} portal is live on EnrollPack 🎉`,
+    html: wrapPlatform(body),
+  });
+}
+
+/**
+ * Plan upgrade email sent to the daycare admin when their plan is upgraded.
+ * Uses EnrollPack platform branding.
+ *
+ * @param {object} opts
+ * @param {string} opts.to          Admin email
+ * @param {string} opts.adminName   Admin full name
+ * @param {object} opts.org         Full organizations DB row (after update)
+ * @param {string} opts.oldPlan     Previous plan slug
+ * @param {string} opts.loginUrl    https://<slug>.enrollpack.com/login
+ */
+async function sendPlanUpgrade({ to, adminName, org, oldPlan, loginUrl }) {
+  const EP_COLOR  = '#f97316';
+  const firstName = adminName ? adminName.split(' ')[0] : 'there';
+
+  const PLAN_FEATURES = {
+    starter: [
+      'Unlimited enrollments — no cap',
+      'Custom daycare name & tagline',
+      'Custom brand colors & logo',
+      'Branded parent portal',
+      'Email support',
+    ],
+    pro: [
+      'Everything in Starter',
+      'White-label emails — your branding, no EnrollPack mention',
+      'Custom logo in email headers',
+      'Personalised email copy for parents',
+      'Priority support',
+      'Multiple staff accounts',
+    ],
+  };
+
+  const PLAN_LABELS = { trial: 'Free Trial', starter: 'Starter', pro: 'Pro' };
+  const newLabel = PLAN_LABELS[org.plan] || org.plan;
+  const oldLabel = PLAN_LABELS[oldPlan]  || oldPlan;
+
+  const features = PLAN_FEATURES[org.plan] || [];
+
+  const body = `
+    ${h2(`You've upgraded to ${newLabel}! 🚀`)}
+    ${p(`Great news, ${firstName} — <strong>${org.name}</strong> has been upgraded from <strong>${oldLabel}</strong> to the <strong>${newLabel}</strong> plan. Your new features are active right now.`)}
+
+    ${features.length > 0 ? `
+      <p style="margin:20px 0 10px;font-size:14px;font-weight:700;color:#111827;">What's now unlocked:</p>
+      <table cellpadding="0" cellspacing="0" style="width:100%;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb;margin-bottom:20px;">
+        ${features.map(f => `
+          <tr>
+            <td style="padding:10px 14px;width:24px;vertical-align:top;">
+              <span style="color:${EP_COLOR};font-weight:700;font-size:15px;">✓</span>
+            </td>
+            <td style="padding:10px 14px 10px 4px;font-size:14px;color:#111827;">${f}</td>
+          </tr>`).join('')}
+      </table>
+    ` : ''}
+
+    ${org.plan === 'starter'
+      ? p('Head to <strong>Settings → Organization Settings</strong> in your dashboard to upload your logo and customize your brand colors.', 'font-size:14px;color:#374151;')
+      : ''}
+    ${org.plan === 'pro'
+      ? p('Your email templates are now fully white-labelled. Parents will see your daycare\'s branding throughout — not EnrollPack\'s.', 'font-size:14px;color:#374151;')
+      : ''}
+
+    ${btn('Go to My Dashboard →', loginUrl, EP_COLOR)}
+    ${p('Thank you for choosing EnrollPack. Questions? <a href="mailto:hello@enrollpack.com" style="color:' + EP_COLOR + ';">hello@enrollpack.com</a>', 'font-size:13px;color:#6b7280;margin-top:20px;')}
+  `;
+
+  await send({
+    to,
+    subject: `${org.name} is now on the ${newLabel} plan 🚀`,
+    html: wrapPlatform(body),
+  });
+}
+
 // ─── Exports ─────────────────────────────────────────────────────────────────
 
-module.exports = { sendWelcome, sendSubmissionConfirmation, sendAdminNewEnrollment, sendStatusUpdate };
+module.exports = { sendWelcome, sendSubmissionConfirmation, sendAdminNewEnrollment, sendStatusUpdate, sendOrgWelcome, sendPlanUpgrade };

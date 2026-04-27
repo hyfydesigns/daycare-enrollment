@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const db = require('../database');
 const { authenticate, requireSuperAdmin } = require('../middleware/auth');
+const { sendOrgWelcome, sendPlanUpgrade } = require('../services/email');
 
 const router = express.Router();
 router.use(authenticate, requireSuperAdmin);
@@ -61,6 +62,16 @@ router.post('/orgs', (req, res) => {
   `).run(orgId, owner_email.toLowerCase().trim(), hash, owner_name || name + ' Admin');
 
   const org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(orgId);
+
+  // Fire-and-forget welcome email to the new daycare admin
+  const appDomain = process.env.APP_DOMAIN || 'enrollpack.com';
+  sendOrgWelcome({
+    to:        owner_email.toLowerCase().trim(),
+    adminName: owner_name || name + ' Admin',
+    org,
+    loginUrl:  `https://${org.slug}.${appDomain}/login`,
+  });
+
   res.status(201).json(org);
 });
 
@@ -102,7 +113,28 @@ router.patch('/orgs/:id', (req, res) => {
     req.params.id,
   );
 
-  res.json(db.prepare('SELECT * FROM organizations WHERE id = ?').get(req.params.id));
+  const updated = db.prepare('SELECT * FROM organizations WHERE id = ?').get(req.params.id);
+
+  // Send upgrade email when plan changes from trial/lower to a paid plan
+  const PAID_PLANS = ['starter', 'pro'];
+  if (plan && plan !== org.plan && PAID_PLANS.includes(plan)) {
+    const adminUser = db.prepare(
+      "SELECT email, full_name FROM users WHERE org_id = ? AND role = 'admin' LIMIT 1"
+    ).get(req.params.id);
+
+    if (adminUser) {
+      const appDomain = process.env.APP_DOMAIN || 'enrollpack.com';
+      sendPlanUpgrade({
+        to:        adminUser.email,
+        adminName: adminUser.full_name,
+        org:       updated,
+        oldPlan:   org.plan,
+        loginUrl:  `https://${updated.slug}.${appDomain}/login`,
+      });
+    }
+  }
+
+  res.json(updated);
 });
 
 // Platform-wide stats
