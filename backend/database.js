@@ -172,10 +172,10 @@ if (schemaVersion() < 3) {
 if (schemaVersion() < 4) {
   // Add column — SQLite supports ADD COLUMN directly
   db.exec(`ALTER TABLE organizations ADD COLUMN trial_ends_at TEXT`);
-  // Back-fill trial orgs: 14-day window from their creation date
+  // Back-fill trial orgs: 30-day window from their creation date
   db.exec(`
     UPDATE organizations
-    SET trial_ends_at = datetime(created_at, '+14 days')
+    SET trial_ends_at = datetime(created_at, '+30 days')
     WHERE plan = 'trial' AND trial_ends_at IS NULL
   `);
   db.prepare('INSERT INTO schema_migrations (version) VALUES (4)').run();

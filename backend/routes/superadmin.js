@@ -50,7 +50,7 @@ router.post('/orgs', (req, res) => {
     primary_color || '#f97316',
     tagline || null,
     chosenPlan,
-    chosenPlan === 'trial' ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() : null,
+    chosenPlan === 'trial' ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() : null,
   );
 
   const orgId = orgResult.lastInsertRowid;
@@ -78,7 +78,7 @@ router.patch('/orgs/:id', (req, res) => {
   let trialEndsAt = undefined; // undefined = don't touch the column
   if (plan && plan !== org.plan) {
     if (plan === 'trial') {
-      trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+      trialEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
     } else {
       trialEndsAt = null; // clear for paid / inactive plans
     }

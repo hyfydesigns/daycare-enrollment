@@ -15,7 +15,7 @@ const plans = [
     name: 'Trial',
     price: 'Free',
     period: '',
-    badge: '14 days',
+    badge: '30 days free',
     desc: 'Try EnrollPack risk-free. No credit card needed.',
     features: [
       'Up to 5 enrollments',
@@ -31,7 +31,7 @@ const plans = [
   },
   {
     name: 'Starter',
-    price: '$29',
+    price: '$19',
     period: '/month',
     badge: null,
     desc: 'Perfect for small daycares ready to go paperless.',
@@ -51,7 +51,7 @@ const plans = [
   },
   {
     name: 'Pro',
-    price: '$79',
+    price: '$49',
     period: '/month',
     badge: 'Most Popular',
     desc: 'For growing daycares that want the full experience.',
