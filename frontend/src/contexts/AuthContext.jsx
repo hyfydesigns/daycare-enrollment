@@ -42,6 +42,15 @@ export function AuthProvider({ children }) {
     setUser(userData);
   };
 
+  // Merge partial updates into the current user state (e.g. clear force_password_change)
+  const updateUser = (updates) => {
+    setUser(prev => {
+      const updated = { ...prev, ...updates };
+      localStorage.setItem('user', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -49,7 +58,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, setUserFromToken }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, setUserFromToken, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

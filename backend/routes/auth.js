@@ -193,7 +193,7 @@ router.post('/superadmin-login', (req, res) => {
 
   res.json({
     token,
-    user: { id: user.id, email: user.email, full_name: user.full_name, role: user.role, org_id: null },
+    user: { id: user.id, email: user.email, full_name: user.full_name, role: user.role, org_id: null, force_password_change: user.force_password_change || 0 },
   });
 });
 
@@ -274,7 +274,7 @@ router.post('/login', resolveOrg, (req, res) => {
 
   res.json({
     token,
-    user: { id: user.id, email: user.email, full_name: user.full_name, role: user.role, org_id: user.org_id },
+    user: { id: user.id, email: user.email, full_name: user.full_name, role: user.role, org_id: user.org_id, force_password_change: user.force_password_change || 0 },
   });
 });
 
@@ -330,10 +330,24 @@ router.post('/reset-password', (req, res) => {
 // ─── Current user profile ─────────────────────────────────────────────────────
 router.get('/me', authenticate, (req, res) => {
   const user = db.prepare(
-    'SELECT id, org_id, email, full_name, role, phone, created_at FROM users WHERE id = ?'
+    'SELECT id, org_id, email, full_name, role, phone, created_at, force_password_change FROM users WHERE id = ?'
   ).get(req.user.id);
   if (!user) return res.status(404).json({ error: 'User not found' });
   res.json(user);
+});
+
+// ─── Force password change (authenticated) ───────────────────────────────────
+router.post('/change-password', authenticate, (req, res) => {
+  const { password } = req.body;
+  if (!password)            return res.status(400).json({ error: 'New password is required.' });
+  if (password.length < 8)  return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+
+  const hash = bcrypt.hashSync(password, 12);
+  db.prepare(
+    'UPDATE users SET password_hash = ?, force_password_change = 0 WHERE id = ?'
+  ).run(hash, req.user.id);
+
+  res.json({ message: 'Password updated successfully.' });
 });
 
 module.exports = router;

@@ -247,8 +247,8 @@ router.post('/orgs/import', (req, res) => {
       if (isAdmin && !adminEmail) adminEmail = user.email;
 
       const userResult = db.prepare(`
-        INSERT INTO users (org_id, email, password_hash, full_name, role, phone, email_verified, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+        INSERT INTO users (org_id, email, password_hash, full_name, role, phone, email_verified, force_password_change, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
       `).run(
         newOrgId,
         user.email.toLowerCase().trim(),
@@ -258,6 +258,7 @@ router.post('/orgs/import', (req, res) => {
         user.full_name || user.email,
         user.role      || 'parent',
         user.phone     || null,
+        isAdmin ? 1 : 0,   // admins must change the temp password on first login
         user.created_at || new Date().toISOString(),
       );
 

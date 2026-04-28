@@ -18,6 +18,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminFormReview from './pages/AdminFormReview';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import SuperAdminLogin from './pages/SuperAdminLogin';
+import ChangePassword from './pages/ChangePassword';
 import OrgSettings from './pages/OrgSettings';
 import PrintView from './pages/PrintView';
 import Help from './pages/Help';
@@ -39,7 +40,7 @@ function homeFor(user) {
   return '/dashboard';
 }
 
-function ProtectedRoute({ children, role }) {
+function ProtectedRoute({ children, role, skipForceCheck = false }) {
   const { user, loading } = useAuth();
   if (loading) return (
     <div className="flex items-center justify-center min-h-screen">
@@ -47,6 +48,10 @@ function ProtectedRoute({ children, role }) {
     </div>
   );
   if (!user) return <Navigate to="/login" replace />;
+  // Force password change before accessing anything else
+  if (!skipForceCheck && user.force_password_change) {
+    return <Navigate to="/change-password" replace />;
+  }
   // Superadmins can access any protected route unless a specific role is required
   // and they don't have it (they're not 'admin' or 'parent', only 'superadmin')
   if (role && user.role !== role && user.role !== 'superadmin') {
@@ -81,6 +86,9 @@ function AppRoutes() {
 
       {/* Platform superadmin */}
       <Route path="/superadmin" element={<ProtectedRoute role="superadmin"><SuperAdminDashboard /></ProtectedRoute>} />
+
+      {/* Force password change — accessible while logged in but blocks all other routes */}
+      <Route path="/change-password" element={<ProtectedRoute skipForceCheck><ChangePassword /></ProtectedRoute>} />
 
       {/* Shared */}
       <Route path="/print/:id" element={<ProtectedRoute><PrintView /></ProtectedRoute>} />

@@ -199,6 +199,12 @@ if (schemaVersion() < 6) {
   db.prepare('INSERT INTO schema_migrations (version) VALUES (6)').run();
 }
 
+// ─── Migration 7: Force password change flag ─────────────────────────────────
+if (schemaVersion() < 7) {
+  db.exec(`ALTER TABLE users ADD COLUMN force_password_change INTEGER NOT NULL DEFAULT 0`);
+  db.prepare('INSERT INTO schema_migrations (version) VALUES (7)').run();
+}
+
 db.exec('PRAGMA foreign_keys = ON');
 
 const isProd = process.env.NODE_ENV === 'production';
