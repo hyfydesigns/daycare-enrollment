@@ -37,7 +37,7 @@ function deepMerge(defaults, saved) {
 export default function EnrollmentForm() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { org } = useOrg();
+  const { org, loading: orgLoading } = useOrg();
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState(DEFAULT_FORM);
   const [enrollmentId, setEnrollmentId] = useState(id || null);
@@ -45,9 +45,11 @@ export default function EnrollmentForm() {
   const [saveStatus, setSaveStatus] = useState('');
   const [loading, setLoading] = useState(!!id);
 
-  // Auto-populate operation name and director name for NEW enrollments
+  // Auto-populate operation name and director name for NEW enrollments.
+  // Wait for orgLoading to finish so we seed with real data, not the defaults
+  // that OrgContext holds before the API call completes.
   useEffect(() => {
-    if (id) return; // editing existing — don't override saved values
+    if (id || orgLoading) return;
     setFormData(prev => ({
       ...prev,
       general: {
@@ -56,7 +58,7 @@ export default function EnrollmentForm() {
         directorName:  prev.general.directorName  || org.directors_name || '',
       },
     }));
-  }, [org.name, org.directors_name]); // re-runs once org data loads
+  }, [orgLoading]); // fires exactly once — when org finishes loading
 
   // Load existing enrollment if editing
   useEffect(() => {
