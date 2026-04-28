@@ -1,6 +1,7 @@
 const express = require('express');
-const bcrypt = require('bcryptjs');
-const db = require('../database');
+const crypto  = require('crypto');
+const bcrypt  = require('bcryptjs');
+const db      = require('../database');
 const { authenticate, requireSuperAdmin } = require('../middleware/auth');
 const { sendOrgWelcome, sendPlanUpgrade } = require('../services/email');
 
@@ -136,6 +137,212 @@ router.patch('/orgs/:id', (req, res) => {
   }
 
   res.json(updated);
+});
+
+// Export all org data as a JSON bundle (for backup before deletion)
+router.get('/orgs/:id/export', (req, res) => {
+  const org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(req.params.id);
+  if (!org) return res.status(404).json({ error: 'Organization not found' });
+
+  // Users — strip password hash and token fields
+  const users = db.prepare(`
+    SELECT id, org_id, email, full_name, role, phone, email_verified, created_at
+    FROM users WHERE org_id = ?
+  `).all(org.id);
+
+  // Enrollments — parse form_data back to object for readability
+  const enrollments = db.prepare(`
+    SELECT e.*, u.full_name AS parent_name, u.email AS parent_email, u.phone AS parent_phone
+    FROM enrollments e
+    LEFT JOIN users u ON e.user_id = u.id
+    WHERE e.org_id = ?
+    ORDER BY e.created_at ASC
+  `).all(org.id).map(e => ({
+    ...e,
+    form_data: (() => { try { return JSON.parse(e.form_data || '{}'); } catch { return {}; } })(),
+  }));
+
+  const bundle = {
+    export_metadata: {
+      exported_at:      new Date().toISOString(),
+      exported_by:      req.user.email,
+      enrollpack_note:  'Keep this file to reinstate the organization if needed.',
+    },
+    organization: org,
+    summary: {
+      total_users:       users.length,
+      total_enrollments: enrollments.length,
+      approved:          enrollments.filter(e => e.status === 'approved').length,
+      submitted:         enrollments.filter(e => e.status === 'submitted').length,
+      draft:             enrollments.filter(e => e.status === 'draft').length,
+    },
+    users,
+    enrollments,
+  };
+
+  const filename = `enrollpack-export-${org.slug}-${new Date().toISOString().slice(0,10)}.json`;
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.json(bundle);
+});
+
+// Reinstate an org from an export bundle
+router.post('/orgs/import', (req, res) => {
+  const bundle = req.body;
+
+  // Validate bundle shape
+  if (!bundle || !bundle.organization || !Array.isArray(bundle.users) || !Array.isArray(bundle.enrollments)) {
+    return res.status(400).json({ error: 'Invalid export bundle. Make sure you upload a file exported from EnrollPack.' });
+  }
+
+  const { organization, users, enrollments } = bundle;
+
+  if (!organization.name || !organization.slug) {
+    return res.status(400).json({ error: 'Export bundle is missing required organization fields.' });
+  }
+
+  // Reject if slug is already taken
+  const slugConflict = db.prepare('SELECT id FROM organizations WHERE slug = ?').get(organization.slug);
+  if (slugConflict) {
+    return res.status(409).json({
+      error: `The slug "${organization.slug}" is already in use. Edit the export file to give it a new slug, or delete/rename the conflicting org first.`,
+    });
+  }
+
+  // Wrap everything in a transaction so a partial failure doesn't leave orphaned rows
+  const importTx = db.transaction(() => {
+    // 1. Recreate the organization
+    const orgResult = db.prepare(`
+      INSERT INTO organizations
+        (name, slug, owner_email, primary_color, accent_color, tagline, plan, logo_url, trial_ends_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      organization.name,
+      organization.slug,
+      organization.owner_email  || null,
+      organization.primary_color || '#f97316',
+      organization.accent_color  || null,
+      organization.tagline       || null,
+      organization.plan          || 'trial',
+      organization.logo_url      || null,
+      organization.trial_ends_at || null,
+    );
+
+    const newOrgId = orgResult.lastInsertRowid;
+
+    // 2. Generate a single temp password for all admin accounts
+    //    (passwords were not included in the export for security)
+    const tempPassword = crypto.randomBytes(6).toString('hex'); // 12-char hex
+    const adminHash    = bcrypt.hashSync(tempPassword, 12);
+
+    // 3. Recreate users, mapping old IDs → new IDs for enrollment foreign keys
+    const userIdMap = {};
+    let   adminEmail = null;
+
+    for (const user of users) {
+      const isAdmin = user.role === 'admin';
+      if (isAdmin && !adminEmail) adminEmail = user.email;
+
+      const userResult = db.prepare(`
+        INSERT INTO users (org_id, email, password_hash, full_name, role, phone, email_verified, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+      `).run(
+        newOrgId,
+        user.email.toLowerCase().trim(),
+        isAdmin
+          ? adminHash
+          : bcrypt.hashSync(crypto.randomBytes(16).toString('hex'), 12), // parents need their own reset
+        user.full_name || user.email,
+        user.role      || 'parent',
+        user.phone     || null,
+        user.created_at || new Date().toISOString(),
+      );
+
+      userIdMap[user.id] = userResult.lastInsertRowid;
+    }
+
+    // 4. Recreate enrollments
+    let skipped = 0;
+    for (const enrollment of enrollments) {
+      const newUserId = userIdMap[enrollment.user_id];
+      if (!newUserId) { skipped++; continue; }
+
+      const formDataStr = typeof enrollment.form_data === 'object'
+        ? JSON.stringify(enrollment.form_data)
+        : (enrollment.form_data || '{}');
+
+      db.prepare(`
+        INSERT INTO enrollments
+          (org_id, user_id, child_name, status, form_data, admin_notes, submitted_at, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        newOrgId,
+        newUserId,
+        enrollment.child_name  || 'Unknown',
+        enrollment.status      || 'draft',
+        formDataStr,
+        enrollment.admin_notes || null,
+        enrollment.submitted_at || null,
+        enrollment.created_at  || new Date().toISOString(),
+        enrollment.updated_at  || new Date().toISOString(),
+      );
+    }
+
+    return { newOrgId, tempPassword, adminEmail, skipped };
+  });
+
+  let result;
+  try {
+    result = importTx();
+  } catch (err) {
+    console.error('[superadmin] Import failed:', err);
+    return res.status(500).json({ error: 'Import failed: ' + err.message });
+  }
+
+  const newOrg = db.prepare('SELECT * FROM organizations WHERE id = ?').get(result.newOrgId);
+
+  console.log(
+    `[superadmin] Org "${newOrg.name}" (id=${newOrg.id}) reinstated by ${req.user.email} ` +
+    `— ${bundle.users.length} users, ${bundle.enrollments.length} enrollments` +
+    (result.skipped ? `, ${result.skipped} enrollments skipped (missing user)` : '')
+  );
+
+  res.status(201).json({
+    org:           newOrg,
+    admin_email:   result.adminEmail,
+    temp_password: result.tempPassword,
+    imported: {
+      users:       bundle.users.length,
+      enrollments: bundle.enrollments.length - result.skipped,
+      skipped:     result.skipped,
+    },
+    note: 'All admin accounts use the temp_password shown. Parent accounts require a password reset. Send the temp password to the daycare admin so they can log in and change it.',
+  });
+});
+
+// Delete an org and all associated data (cascade via FK)
+router.delete('/orgs/:id', (req, res) => {
+  const { confirm_name } = req.body;
+  const org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(req.params.id);
+  if (!org) return res.status(404).json({ error: 'Organization not found' });
+
+  // Require the caller to confirm by passing the exact org name
+  if (!confirm_name || confirm_name.trim() !== org.name.trim()) {
+    return res.status(400).json({
+      error: `Confirmation name does not match. Expected: "${org.name}"`,
+    });
+  }
+
+  // Prevent deleting the default platform org
+  if (org.slug === 'default') {
+    return res.status(403).json({ error: 'The default organization cannot be deleted.' });
+  }
+
+  // Foreign key cascade handles users + enrollments
+  db.prepare('DELETE FROM organizations WHERE id = ?').run(org.id);
+
+  console.log(`[superadmin] Org #${org.id} "${org.name}" deleted by ${req.user.email}`);
+  res.json({ success: true, deleted: { id: org.id, name: org.name, slug: org.slug } });
 });
 
 // Platform-wide stats
