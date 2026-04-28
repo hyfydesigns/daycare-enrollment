@@ -59,6 +59,7 @@ const plans = [
       'Everything in Starter',
       'White-label emails',
       'Custom email branding',
+      'SMS notifications for parents & staff',
       'Priority support',
       'Multiple staff accounts',
       'Advanced org settings',

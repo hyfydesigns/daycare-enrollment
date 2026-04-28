@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../database');
 const { authenticate } = require('../middleware/auth');
 const { sendSubmissionConfirmation, sendAdminNewEnrollment } = require('../services/email');
+const { sendSmsSubmissionConfirmation, sendSmsAdminNewEnrollment } = require('../services/sms');
 const { TRIAL_ENROLLMENT_LIMIT } = require('./org');
 
 const router = express.Router();
@@ -121,8 +122,8 @@ router.post('/:id/submit', (req, res) => {
 
   // Fire-and-forget emails: confirmation to parent + notification to admin
   const org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(req.user.org_id);
-  const parent = db.prepare('SELECT full_name, email FROM users WHERE id = ?').get(req.user.id);
-  const adminUser = db.prepare("SELECT email FROM users WHERE org_id = ? AND role = 'admin' LIMIT 1").get(req.user.org_id);
+  const parent = db.prepare('SELECT full_name, email, phone FROM users WHERE id = ?').get(req.user.id);
+  const adminUser = db.prepare("SELECT email, phone FROM users WHERE org_id = ? AND role = 'admin' LIMIT 1").get(req.user.org_id);
 
   if (org && parent) {
     const appDomain = process.env.APP_DOMAIN || 'enrollpack.com';
@@ -136,6 +137,12 @@ router.post('/:id/submit', (req, res) => {
       org,
       dashboardUrl,
     });
+    sendSmsSubmissionConfirmation({
+      org,
+      phone:      parent.phone,
+      parentName: parent.full_name,
+      childName:  updated.child_name,
+    });
 
     if (adminUser) {
       sendAdminNewEnrollment({
@@ -144,6 +151,13 @@ router.post('/:id/submit', (req, res) => {
         parentName: parent.full_name,
         parentEmail: parent.email,
         org,
+        reviewUrl,
+      });
+      sendSmsAdminNewEnrollment({
+        org,
+        phone:      adminUser.phone,
+        childName:  updated.child_name,
+        parentName: parent.full_name,
         reviewUrl,
       });
     }

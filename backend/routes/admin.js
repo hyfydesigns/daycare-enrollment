@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../database');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 const { sendStatusUpdate } = require('../services/email');
+const { sendSmsStatusUpdate } = require('../services/sms');
 
 const router = express.Router();
 router.use(authenticate, requireAdmin);
@@ -72,7 +73,7 @@ router.patch('/enrollments/:id/status', (req, res) => {
   }
 
   const enrollment = db.prepare(`
-    SELECT e.id, e.child_name, e.org_id, u.full_name AS parent_name, u.email AS parent_email
+    SELECT e.id, e.child_name, e.org_id, u.full_name AS parent_name, u.email AS parent_email, u.phone AS parent_phone
     FROM enrollments e JOIN users u ON e.user_id = u.id
     WHERE e.id = ? AND e.org_id = ?
   `).get(req.params.id, orgId);
@@ -89,15 +90,25 @@ router.patch('/enrollments/:id/status', (req, res) => {
   if (notifyStatuses.includes(status)) {
     const org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(enrollment.org_id);
     if (org) {
-      const appDomain = process.env.APP_DOMAIN || 'enrollpack.com';
+      const appDomain    = process.env.APP_DOMAIN || 'enrollpack.com';
+      const dashboardUrl = `https://${org.slug}.${appDomain}/dashboard`;
+
       sendStatusUpdate({
-        to: enrollment.parent_email,
+        to:         enrollment.parent_email,
         parentName: enrollment.parent_name,
-        childName: enrollment.child_name,
+        childName:  enrollment.child_name,
         status,
         adminNotes: admin_notes || null,
         org,
-        dashboardUrl: `https://${org.slug}.${appDomain}/dashboard`,
+        dashboardUrl,
+      });
+      sendSmsStatusUpdate({
+        org,
+        phone:       enrollment.parent_phone,
+        parentName:  enrollment.parent_name,
+        childName:   enrollment.child_name,
+        status,
+        dashboardUrl,
       });
     }
   }
