@@ -1,6 +1,7 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useOrg } from '../contexts/OrgContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const steps = [
   { icon: '📝', title: 'Register', desc: 'Create your parent account in minutes.' },
@@ -11,6 +12,13 @@ const steps = [
 
 export default function Landing() {
   const { org } = useOrg();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  // If a parent is already logged in, send them straight to their dashboard
+  React.useEffect(() => {
+    if (user?.role === 'parent') navigate('/dashboard', { replace: true });
+  }, [user, navigate]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-warm-50 to-orange-50">
@@ -31,12 +39,31 @@ export default function Landing() {
             <span className="font-bold text-gray-800 text-lg">{org.name}</span>
           </div>
           <div className="flex items-center gap-2">
-            <Link to="/login?role=staff" className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors">
-              Staff Login
-            </Link>
-            <Link to="/login" className="btn-secondary text-sm py-2 px-4">
-              Parent Login
-            </Link>
+            {user ? (
+              <>
+                <span className="text-sm text-gray-500 hidden sm:block">
+                  {user.full_name || user.email}
+                </span>
+                <Link to="/admin" className="btn-secondary text-sm py-2 px-4">
+                  Dashboard
+                </Link>
+                <button
+                  onClick={() => { logout(); }}
+                  className="text-sm text-gray-400 hover:text-gray-600 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/login?role=staff" className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                  Staff Login
+                </Link>
+                <Link to="/login" className="btn-secondary text-sm py-2 px-4">
+                  Parent Login
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -90,17 +117,19 @@ export default function Landing() {
       </section>
 
       {/* Staff section */}
-      <section className="border-t border-gray-200 bg-white/60">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div>
-            <h3 className="font-semibold text-gray-800 mb-1">{org.name} Staff?</h3>
-            <p className="text-sm text-gray-500">Log in to review submissions, print forms, and manage enrollments.</p>
+      {!user && (
+        <section className="border-t border-gray-200 bg-white/60">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <h3 className="font-semibold text-gray-800 mb-1">{org.name} Staff?</h3>
+              <p className="text-sm text-gray-500">Log in to review submissions, print forms, and manage enrollments.</p>
+            </div>
+            <Link to="/login?role=staff" className="btn-secondary whitespace-nowrap">
+              Staff Login →
+            </Link>
           </div>
-          <Link to="/login?role=staff" className="btn-secondary whitespace-nowrap">
-            Staff Login →
-          </Link>
-        </div>
-      </section>
+        </section>
+      )}
 
       <footer className="text-center py-6 text-xs text-gray-400">
         © {new Date().getFullYear()} {org.name} · Powered by EnrollPack
