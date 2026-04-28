@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import Footer from '../components/Footer';
 
 const features = [
   { icon: '📋', title: 'Digital Enrollment Forms', desc: 'Parents complete Texas HHSC Form 2935 online — no paper, no printing, no lost forms.' },
@@ -265,12 +266,7 @@ export default function PlatformLanding() {
         </div>
       </section>
 
-      <footer className="border-t border-gray-100 py-6 text-center text-xs text-gray-400">
-        © {new Date().getFullYear()} EnrollPack ·{' '}
-        <a href={`mailto:${contactEmail}`} className="hover:text-gray-600">{contactEmail}</a>
-        {' '}·{' '}
-        <Link to="/admin" className="hover:text-gray-600">Admin</Link>
-      </footer>
+      <Footer />
     </div>
   );
 }

@@ -22,6 +22,8 @@ import ChangePassword from './pages/ChangePassword';
 import OrgSettings from './pages/OrgSettings';
 import PrintView from './pages/PrintView';
 import Help from './pages/Help';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
 
 // True when visiting the root platform domain (e.g. enrollpack.com),
 // false when on a daycare subdomain (e.g. sunshine.enrollpack.com)
@@ -91,8 +93,10 @@ function AppRoutes() {
 
       {/* Shared */}
       <Route path="/print/:id" element={<ProtectedRoute><PrintView /></ProtectedRoute>} />
-      <Route path="/help"      element={<Help />} />
-      <Route path="*"          element={<Navigate to="/" replace />} />
+      <Route path="/help"    element={<Help />} />
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/terms"   element={<Terms />} />
+      <Route path="*"        element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

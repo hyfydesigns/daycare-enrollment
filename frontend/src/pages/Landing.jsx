@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useOrg } from '../contexts/OrgContext';
 import { useAuth } from '../contexts/AuthContext';
+import Footer from '../components/Footer';
 
 const steps = [
   { icon: '📝', title: 'Register', desc: 'Create your parent account in minutes.' },
@@ -131,9 +132,7 @@ export default function Landing() {
         </section>
       )}
 
-      <footer className="text-center py-6 text-xs text-gray-400">
-        © {new Date().getFullYear()} {org.name} · Powered by EnrollPack
-      </footer>
+      <Footer />
     </div>
   );
 }

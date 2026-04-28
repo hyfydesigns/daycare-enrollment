@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 import { useAuth } from '../contexts/AuthContext';
 
 function Section({ title, icon, children }) {
@@ -62,7 +63,7 @@ export default function Help() {
   const backPath = user?.role === 'admin' ? '/admin' : user?.role === 'superadmin' ? '/superadmin' : '/dashboard';
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navbar />
       <div className="max-w-3xl mx-auto px-4 py-10">
 
@@ -246,6 +247,7 @@ export default function Help() {
 
         </div>
       </div>
+      <Footer />
     </div>
   );
 }
