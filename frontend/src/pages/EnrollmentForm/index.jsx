@@ -117,6 +117,11 @@ export default function EnrollmentForm() {
     navigate(`/enrollment/${enrollmentId}/review`);
   };
 
+  const handleSaveForLater = async () => {
+    await saveProgress();
+    navigate('/dashboard');
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -190,6 +195,13 @@ export default function EnrollmentForm() {
               ← Back
             </button>
             <div className="flex gap-2">
+              <button
+                onClick={handleSaveForLater}
+                disabled={saving}
+                className="btn-secondary text-sm sm:text-base px-4 sm:px-5"
+              >
+                Save for Later
+              </button>
               {step < STEPS.length - 1 ? (
                 <button onClick={handleNext} disabled={saving} className="btn-primary text-sm sm:text-base px-4 sm:px-5">
                   {saving ? 'Saving…' : 'Save & Continue →'}
