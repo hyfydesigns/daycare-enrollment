@@ -209,8 +209,11 @@ router.post('/orgs/import', (req, res) => {
     });
   }
 
-  // Wrap everything in a transaction so a partial failure doesn't leave orphaned rows
-  const importTx = db.transaction(() => {
+  // Run everything inside a manual transaction (node:sqlite has no .transaction() helper)
+  let result;
+  try {
+    db.exec('BEGIN');
+
     // 1. Recreate the organization
     const orgResult = db.prepare(`
       INSERT INTO organizations
@@ -219,7 +222,7 @@ router.post('/orgs/import', (req, res) => {
     `).run(
       organization.name,
       organization.slug,
-      organization.owner_email  || null,
+      organization.owner_email   || null,
       organization.primary_color || '#f97316',
       organization.accent_color  || null,
       organization.tagline       || null,
@@ -230,7 +233,7 @@ router.post('/orgs/import', (req, res) => {
 
     const newOrgId = orgResult.lastInsertRowid;
 
-    // 2. Generate a single temp password for all admin accounts
+    // 2. Generate a temp password for admin accounts
     //    (passwords were not included in the export for security)
     const tempPassword = crypto.randomBytes(6).toString('hex'); // 12-char hex
     const adminHash    = bcrypt.hashSync(tempPassword, 12);
@@ -251,7 +254,7 @@ router.post('/orgs/import', (req, res) => {
         user.email.toLowerCase().trim(),
         isAdmin
           ? adminHash
-          : bcrypt.hashSync(crypto.randomBytes(16).toString('hex'), 12), // parents need their own reset
+          : bcrypt.hashSync(crypto.randomBytes(16).toString('hex'), 12),
         user.full_name || user.email,
         user.role      || 'parent',
         user.phone     || null,
@@ -278,23 +281,20 @@ router.post('/orgs/import', (req, res) => {
       `).run(
         newOrgId,
         newUserId,
-        enrollment.child_name  || 'Unknown',
-        enrollment.status      || 'draft',
+        enrollment.child_name   || 'Unknown',
+        enrollment.status       || 'draft',
         formDataStr,
-        enrollment.admin_notes || null,
+        enrollment.admin_notes  || null,
         enrollment.submitted_at || null,
-        enrollment.created_at  || new Date().toISOString(),
-        enrollment.updated_at  || new Date().toISOString(),
+        enrollment.created_at   || new Date().toISOString(),
+        enrollment.updated_at   || new Date().toISOString(),
       );
     }
 
-    return { newOrgId, tempPassword, adminEmail, skipped };
-  });
-
-  let result;
-  try {
-    result = importTx();
+    db.exec('COMMIT');
+    result = { newOrgId, tempPassword, adminEmail, skipped };
   } catch (err) {
+    db.exec('ROLLBACK');
     console.error('[superadmin] Import failed:', err);
     return res.status(500).json({ error: 'Import failed: ' + err.message });
   }
