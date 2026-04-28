@@ -29,7 +29,8 @@ export default function Login() {
     setLoading(true);
     try {
       const user = await login(form.email, form.password);
-      if (user.role === 'superadmin') navigate('/superadmin');
+      if (user.force_password_change) navigate('/change-password', { replace: true });
+      else if (user.role === 'superadmin') navigate('/superadmin');
       else if (user.role === 'admin') navigate('/admin');
       else navigate('/dashboard');
     } catch (err) {

@@ -66,7 +66,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={isRootDomain() ? <PlatformLanding /> : <Landing />} />
       <Route path="/signup"       element={isRootDomain() ? <OrgSignup />     : <Navigate to="/" replace />} />
-      <Route path="/admin"        element={isRootDomain() ? (user ? <Navigate to={homeFor(user)} replace /> : <SuperAdminLogin />) : <Navigate to="/" replace />} />
+      <Route path="/admin"        element={isRootDomain() ? (user ? <Navigate to={homeFor(user)} replace /> : <SuperAdminLogin />) : <ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>} />
       <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/login"            element={isRootDomain() ? <Navigate to="/" replace /> : user ? <Navigate to={homeFor(user)} replace /> : <Login />} />
       <Route path="/register"         element={isRootDomain() ? <Navigate to="/" replace /> : user ? <Navigate to={homeFor(user)} replace /> : <Register />} />
@@ -80,7 +80,6 @@ function AppRoutes() {
       <Route path="/enrollment/:id/review" element={<ProtectedRoute role="parent"><ReviewSubmit /></ProtectedRoute>} />
 
       {/* Org admin routes */}
-      <Route path="/admin"                element={<ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>} />
       <Route path="/admin/enrollment/:id" element={<ProtectedRoute role="admin"><AdminFormReview /></ProtectedRoute>} />
       <Route path="/admin/settings"       element={<ProtectedRoute role="admin"><OrgSettings /></ProtectedRoute>} />
 
