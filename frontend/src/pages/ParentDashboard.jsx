@@ -16,6 +16,8 @@ export default function ParentDashboard() {
   const [enrollments, setEnrollments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(null); // enrollment id pending confirm
+  const [deleting, setDeleting]     = useState(null); // enrollment id currently being deleted
 
   useEffect(() => {
     api.get('/enrollments').then((r) => setEnrollments(r.data)).finally(() => setLoading(false));
@@ -31,8 +33,22 @@ export default function ParentDashboard() {
     }
   };
 
-  const canEdit = (status) => status === 'draft' || status === 'needs_correction';
-  const canView = (status) => status === 'submitted' || status === 'printed' || status === 'signed' || status === 'approved';
+  const canEdit   = (status) => status === 'draft' || status === 'needs_correction';
+  const canView   = (status) => ['submitted', 'printed', 'signed', 'approved'].includes(status);
+  const canDelete = (status) => status === 'draft' || status === 'needs_correction';
+
+  const handleDelete = async (id) => {
+    setDeleting(id);
+    try {
+      await api.delete(`/enrollments/${id}`);
+      setEnrollments(prev => prev.filter(e => e.id !== id));
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to delete. Please try again.');
+    } finally {
+      setDeleting(null);
+      setConfirmDelete(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-warm-50">
@@ -114,6 +130,33 @@ export default function ParentDashboard() {
                         <Link to={`/enrollment/${e.id}/review`} className="btn-secondary text-sm py-2 px-4 flex-1 sm:flex-none text-center">
                           Preview
                         </Link>
+                      )}
+                      {canDelete(e.status) && (
+                        confirmDelete === e.id ? (
+                          <div className="flex items-center gap-2 flex-1 sm:flex-none">
+                            <span className="text-xs text-red-600 font-medium">Delete this form?</span>
+                            <button
+                              onClick={() => handleDelete(e.id)}
+                              disabled={deleting === e.id}
+                              className="text-xs py-2 px-3 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold transition-colors disabled:opacity-50"
+                            >
+                              {deleting === e.id ? 'Deleting…' : 'Yes, delete'}
+                            </button>
+                            <button
+                              onClick={() => setConfirmDelete(null)}
+                              className="text-xs py-2 px-3 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-600 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmDelete(e.id)}
+                            className="text-xs py-2 px-3 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-colors"
+                          >
+                            Delete
+                          </button>
+                        )
                       )}
                     </div>
                   </div>

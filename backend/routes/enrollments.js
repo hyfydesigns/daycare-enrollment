@@ -95,6 +95,25 @@ router.put('/:id', (req, res) => {
   res.json(updated);
 });
 
+// Delete enrollment — parents may only delete draft or needs_correction forms
+router.delete('/:id', (req, res) => {
+  const enrollment = db.prepare(`
+    SELECT id, status FROM enrollments WHERE id = ? AND user_id = ? AND org_id = ?
+  `).get(req.params.id, req.user.id, req.user.org_id);
+
+  if (!enrollment) return res.status(404).json({ error: 'Enrollment not found' });
+
+  const deletable = ['draft', 'needs_correction'];
+  if (!deletable.includes(enrollment.status)) {
+    return res.status(400).json({
+      error: 'Only draft or needs-correction enrollments can be deleted. Contact your daycare to withdraw a submitted form.',
+    });
+  }
+
+  db.prepare('DELETE FROM enrollments WHERE id = ?').run(enrollment.id);
+  res.json({ success: true, deleted_id: enrollment.id });
+});
+
 // Submit enrollment
 router.post('/:id/submit', (req, res) => {
   const existing = db.prepare(`
