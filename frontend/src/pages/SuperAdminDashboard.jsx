@@ -28,7 +28,7 @@ function StatCard({ label, value, color }) {
 function NewOrgModal({ onClose, onCreated }) {
   const [form, setForm] = useState({
     name: '', slug: '', owner_email: '', owner_password: '', owner_name: '',
-    primary_color: '#f97316', plan: 'trial',
+    directors_name: '', primary_color: '#f97316', plan: 'trial',
   });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -86,6 +86,11 @@ function NewOrgModal({ onClose, onCreated }) {
             <input className="form-input" value={form.owner_name}
               onChange={e => set('owner_name', e.target.value)} placeholder="Jane Smith" />
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Director's Name</label>
+            <input className="form-input" value={form.directors_name}
+              onChange={e => set('directors_name', e.target.value)} placeholder="Jane Smith" />
+          </div>
           <div className="flex gap-3">
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 mb-1">Plan</label>
@@ -113,14 +118,15 @@ function NewOrgModal({ onClose, onCreated }) {
 
 function EditOrgModal({ org, onClose, onUpdated }) {
   const [form, setForm] = useState({
-    name:          org.name          || '',
-    slug:          org.slug          || '',
-    owner_email:   org.owner_email   || '',
-    tagline:       org.tagline       || '',
-    primary_color: org.primary_color || '#f97316',
-    accent_color:  org.accent_color  || '#1f2937',
-    logo_url:      org.logo_url      || '',
-    plan:          org.plan          || 'trial',
+    name:           org.name           || '',
+    slug:           org.slug           || '',
+    owner_email:    org.owner_email    || '',
+    tagline:        org.tagline        || '',
+    directors_name: org.directors_name || '',
+    primary_color:  org.primary_color  || '#f97316',
+    accent_color:   org.accent_color   || '#1f2937',
+    logo_url:       org.logo_url       || '',
+    plan:           org.plan           || 'trial',
   });
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState('');
@@ -175,6 +181,11 @@ function EditOrgModal({ org, onClose, onUpdated }) {
               <select className="form-input" value={form.plan} onChange={e => set('plan', e.target.value)}>
                 {PLAN_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Director's Name <span className="text-gray-400 font-normal">(optional)</span></label>
+              <input className="form-input" value={form.directors_name}
+                onChange={e => set('directors_name', e.target.value)} placeholder="Jane Smith" />
             </div>
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Tagline <span className="text-gray-400 font-normal">(optional)</span></label>

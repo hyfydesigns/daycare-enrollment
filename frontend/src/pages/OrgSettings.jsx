@@ -31,11 +31,12 @@ export default function OrgSettings() {
   const isLocked  = isTrial; // branding locked on trial
 
   const [form, setForm] = useState({
-    name:          org.name          || '',
-    tagline:       org.tagline       || '',
-    primary_color: org.primary_color || '#f97316',
-    accent_color:  org.accent_color  || '#1f2937',
-    logo_url:      org.logo_url      || '',
+    name:           org.name           || '',
+    tagline:        org.tagline        || '',
+    directors_name: org.directors_name || '',
+    primary_color:  org.primary_color  || '#f97316',
+    accent_color:   org.accent_color   || '#1f2937',
+    logo_url:       org.logo_url       || '',
   });
   const [saving, setSaving] = useState(false);
   const [saved,  setSaved]  = useState(false);
@@ -51,8 +52,9 @@ export default function OrgSettings() {
     try {
       // Trial orgs: never send branding fields (backend blocks them anyway)
       const payload = {
-        name:    form.name    || undefined,
-        tagline: form.tagline || undefined,
+        name:           form.name           || undefined,
+        tagline:        form.tagline        || undefined,
+        directors_name: form.directors_name || undefined,
         ...(!isLocked && {
           primary_color: form.primary_color || undefined,
           accent_color:  form.accent_color  || undefined,
@@ -118,6 +120,17 @@ export default function OrgSettings() {
                 placeholder="Sunshine Daycare"
                 required
               />
+            </div>
+
+            <div>
+              <label className="form-label">Director's Name <span className="text-gray-400 font-normal">(optional)</span></label>
+              <input
+                className="form-input"
+                value={form.directors_name}
+                onChange={e => set('directors_name', e.target.value)}
+                placeholder="Jane Smith"
+              />
+              <p className="text-xs text-gray-400 mt-1">Auto-filled on new enrollment forms.</p>
             </div>
 
             <div>

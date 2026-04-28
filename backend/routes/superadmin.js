@@ -32,7 +32,7 @@ router.get('/orgs/:id', (req, res) => {
 
 // Create a new org + seed its first admin account
 router.post('/orgs', (req, res) => {
-  const { name, slug, owner_email, owner_password, owner_name, primary_color, tagline, plan } = req.body;
+  const { name, slug, owner_email, owner_password, owner_name, primary_color, tagline, directors_name, plan } = req.body;
 
   if (!name || !slug || !owner_email || !owner_password) {
     return res.status(400).json({ error: 'name, slug, owner_email, and owner_password are required' });
@@ -43,14 +43,15 @@ router.post('/orgs', (req, res) => {
 
   const chosenPlan = plan || 'trial';
   const orgResult = db.prepare(`
-    INSERT INTO organizations (name, slug, owner_email, primary_color, tagline, plan, trial_ends_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO organizations (name, slug, owner_email, primary_color, tagline, directors_name, plan, trial_ends_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     name,
     slug.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
     owner_email,
     primary_color || '#f97316',
     tagline || null,
+    directors_name || null,
     chosenPlan,
     chosenPlan === 'trial' ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() : null,
   );
@@ -78,7 +79,7 @@ router.post('/orgs', (req, res) => {
 
 // Update org (plan, branding, status)
 router.patch('/orgs/:id', (req, res) => {
-  const { name, slug, owner_email, primary_color, accent_color, tagline, plan, logo_url } = req.body;
+  const { name, slug, owner_email, primary_color, accent_color, tagline, directors_name, plan, logo_url } = req.body;
 
   const org = db.prepare('SELECT * FROM organizations WHERE id = ?').get(req.params.id);
   if (!org) return res.status(404).json({ error: 'Organization not found' });
@@ -98,19 +99,20 @@ router.patch('/orgs/:id', (req, res) => {
 
   db.prepare(`
     UPDATE organizations
-    SET name          = COALESCE(?, name),
-        slug          = COALESCE(?, slug),
-        owner_email   = COALESCE(?, owner_email),
-        primary_color = COALESCE(?, primary_color),
-        accent_color  = COALESCE(?, accent_color),
-        tagline       = COALESCE(?, tagline),
-        plan          = COALESCE(?, plan),
-        logo_url      = COALESCE(?, logo_url),
-        trial_ends_at = CASE WHEN ? THEN ? ELSE trial_ends_at END
+    SET name           = COALESCE(?, name),
+        slug           = COALESCE(?, slug),
+        owner_email    = COALESCE(?, owner_email),
+        primary_color  = COALESCE(?, primary_color),
+        accent_color   = COALESCE(?, accent_color),
+        tagline        = COALESCE(?, tagline),
+        directors_name = COALESCE(?, directors_name),
+        plan           = COALESCE(?, plan),
+        logo_url       = COALESCE(?, logo_url),
+        trial_ends_at  = CASE WHEN ? THEN ? ELSE trial_ends_at END
     WHERE id = ?
   `).run(
     name||null, slug||null, owner_email||null, primary_color||null, accent_color||null,
-    tagline||null, plan||null, logo_url||null,
+    tagline||null, directors_name||null, plan||null, logo_url||null,
     trialEndsAt !== undefined ? 1 : 0, trialEndsAt !== undefined ? trialEndsAt : null,
     req.params.id,
   );

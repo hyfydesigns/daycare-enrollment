@@ -205,6 +205,12 @@ if (schemaVersion() < 7) {
   db.prepare('INSERT INTO schema_migrations (version) VALUES (7)').run();
 }
 
+// ─── Migration 8: Director's name on organizations ───────────────────────────
+if (schemaVersion() < 8) {
+  db.exec(`ALTER TABLE organizations ADD COLUMN directors_name TEXT`);
+  db.prepare('INSERT INTO schema_migrations (version) VALUES (8)').run();
+}
+
 db.exec('PRAGMA foreign_keys = ON');
 
 const isProd = process.env.NODE_ENV === 'production';

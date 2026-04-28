@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 import Navbar from '../../components/Navbar';
+import { useOrg } from '../../contexts/OrgContext';
 import { DEFAULT_FORM } from './formDefaults';
 import Step1 from './Step1_ChildFamily';
 import Step2 from './Step2_Consents';
@@ -36,12 +37,26 @@ function deepMerge(defaults, saved) {
 export default function EnrollmentForm() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { org } = useOrg();
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState(DEFAULT_FORM);
   const [enrollmentId, setEnrollmentId] = useState(id || null);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState('');
   const [loading, setLoading] = useState(!!id);
+
+  // Auto-populate operation name and director name for NEW enrollments
+  useEffect(() => {
+    if (id) return; // editing existing — don't override saved values
+    setFormData(prev => ({
+      ...prev,
+      general: {
+        ...prev.general,
+        operationName: prev.general.operationName || org.name           || '',
+        directorName:  prev.general.directorName  || org.directors_name || '',
+      },
+    }));
+  }, [org.name, org.directors_name]); // re-runs once org data loads
 
   // Load existing enrollment if editing
   useEffect(() => {
