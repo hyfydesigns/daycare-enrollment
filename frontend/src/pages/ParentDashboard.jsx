@@ -15,7 +15,6 @@ export default function ParentDashboard() {
   const navigate = useNavigate();
   const [enrollments, setEnrollments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null); // enrollment id pending confirm
   const [deleting, setDeleting]     = useState(null); // enrollment id currently being deleted
 
@@ -23,15 +22,7 @@ export default function ParentDashboard() {
     api.get('/enrollments').then((r) => setEnrollments(r.data)).finally(() => setLoading(false));
   }, []);
 
-  const startNew = async () => {
-    setCreating(true);
-    try {
-      const res = await api.post('/enrollments', { form_data: {} });
-      navigate(`/enrollment/${res.data.id}/edit`);
-    } finally {
-      setCreating(false);
-    }
-  };
+  const startNew = () => navigate('/enrollment/new');
 
   const canEdit   = (status) => status === 'draft' || status === 'needs_correction';
   const canView   = (status) => ['submitted', 'printed', 'signed', 'approved'].includes(status);
@@ -69,8 +60,8 @@ export default function ParentDashboard() {
               <h2 className="font-semibold text-gray-800 text-lg mb-1">Enroll a Child</h2>
               <p className="text-sm text-gray-500">Complete the Texas state daycare enrollment form (Form 2935) online.</p>
             </div>
-            <button onClick={startNew} disabled={creating} className="btn-primary w-full sm:w-auto whitespace-nowrap">
-              {creating ? 'Creating…' : '+ New Enrollment'}
+            <button onClick={startNew} className="btn-primary w-full sm:w-auto whitespace-nowrap">
+              + New Enrollment
             </button>
           </div>
         </div>
@@ -88,7 +79,7 @@ export default function ParentDashboard() {
               <div className="text-4xl mb-3">📋</div>
               <h3 className="font-semibold text-gray-700 mb-1">No enrollments yet</h3>
               <p className="text-sm text-gray-400 mb-4">Start a new enrollment to begin the process.</p>
-              <button onClick={startNew} disabled={creating} className="btn-primary mx-auto">
+              <button onClick={startNew} className="btn-primary mx-auto">
                 Start Enrollment
               </button>
             </div>
