@@ -1,10 +1,14 @@
 import React from 'react';
 
-export default function Step1({ data, onChange }) {
+export default function Step1({ data, onChange, errors = [] }) {
   const set = (section, key) => (e) => {
     const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
     onChange(section, { ...data[section], [key]: val });
   };
+
+  // Determine which emergency contact fields are flagged
+  const nameError  = errors.some(e => e.includes('same person'));
+  const phoneError = errors.some(e => e.includes('phone'));
 
   const setPickup = (index, key, value) => {
     const updated = data.authorizedPickup.map((p, i) => i === index ? { ...p, [key]: value } : p);
@@ -96,10 +100,25 @@ export default function Step1({ data, onChange }) {
       <div className="form-section">
         <h3 className="text-base font-semibold text-gray-800 mb-4">Emergency Contact</h3>
         <p className="text-sm text-gray-500 mb-3">In case of an emergency, call:</p>
+
+        {errors.length > 0 && (
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3">
+            {errors.map((err, i) => (
+              <p key={i} className="text-sm text-red-700 flex items-start gap-2">
+                <span className="flex-shrink-0 mt-0.5">⚠️</span>
+                {err}
+              </p>
+            ))}
+          </div>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="form-label">Name <span className="required-star">*</span></label>
-            <input className="form-input" value={data.emergency.contactName} onChange={(e) => onChange('emergency', { ...data.emergency, contactName: e.target.value })} />
+            <input
+              className={`form-input ${nameError ? 'border-red-400 focus:ring-red-300' : ''}`}
+              value={data.emergency.contactName}
+              onChange={(e) => onChange('emergency', { ...data.emergency, contactName: e.target.value })}
+            />
           </div>
           <div>
             <label className="form-label">Relationship</label>
@@ -107,7 +126,13 @@ export default function Step1({ data, onChange }) {
           </div>
           <div>
             <label className="form-label">Phone Number</label>
-            <input type="tel" className="form-input" value={data.emergency.contactPhone} onChange={(e) => onChange('emergency', { ...data.emergency, contactPhone: e.target.value })} placeholder="(555) 000-0000" />
+            <input
+              type="tel"
+              className={`form-input ${phoneError ? 'border-red-400 focus:ring-red-300' : ''}`}
+              value={data.emergency.contactPhone}
+              onChange={(e) => onChange('emergency', { ...data.emergency, contactPhone: e.target.value })}
+              placeholder="(555) 000-0000"
+            />
           </div>
           <div>
             <label className="form-label">Address</label>

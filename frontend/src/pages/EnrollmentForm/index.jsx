@@ -79,6 +79,8 @@ export default function EnrollmentForm() {
   const handleChange = useCallback((section, value) => {
     setFormData((prev) => ({ ...prev, [section]: value }));
     setSaveStatus('unsaved');
+    // Clear step errors when the user edits fields
+    setStepErrors([]);
   }, []);
 
   const saveProgress = async (data = formData) => {
@@ -101,7 +103,45 @@ export default function EnrollmentForm() {
     }
   };
 
+  // ── Step-level validation ────────────────────────────────────────────
+  const [stepErrors, setStepErrors] = useState([]);
+
+  const validateStep = (stepIndex) => {
+    if (stepIndex !== 0) return [];
+    const errors = [];
+    const { general, emergency } = formData;
+
+    const norm     = (s) => (s || '').trim().toLowerCase();
+    const normPhone = (s) => (s || '').replace(/\D/g, '');
+
+    const pgName = norm(general.parentGuardianName);
+    const ecName = norm(emergency.contactName);
+    const ecPhone = normPhone(emergency.contactPhone);
+
+    if (pgName && ecName && pgName === ecName) {
+      errors.push('Emergency contact cannot be the same person as the parent or guardian completing this form.');
+    }
+
+    if (ecPhone) {
+      const parentPhones = [general.parent1Phone, general.parent2Phone, general.guardianPhone]
+        .map(normPhone)
+        .filter(Boolean);
+      if (parentPhones.includes(ecPhone)) {
+        errors.push('Emergency contact phone number cannot match a parent or guardian phone number.');
+      }
+    }
+
+    return errors;
+  };
+
   const handleNext = async () => {
+    const errors = validateStep(step);
+    if (errors.length) {
+      setStepErrors(errors);
+      window.scrollTo(0, 0);
+      return;
+    }
+    setStepErrors([]);
     await saveProgress();
     setStep((s) => Math.min(s + 1, STEPS.length - 1));
     window.scrollTo(0, 0);
@@ -181,7 +221,7 @@ export default function EnrollmentForm() {
         </div>
 
         <div className="card">
-          {step === 0 && <Step1 data={formData} onChange={handleChange} />}
+          {step === 0 && <Step1 data={formData} onChange={handleChange} errors={stepErrors} />}
           {step === 1 && <Step2 data={formData} onChange={handleChange} />}
           {step === 2 && <Step3 data={formData} onChange={handleChange} />}
           {step === 3 && <Step4 data={formData} onChange={handleChange} />}
