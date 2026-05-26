@@ -96,6 +96,7 @@ export default function AdminDashboard() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sort, setSort] = useState('updated_at');
   const [order, setOrder] = useState('desc');
+  const [confirmDelete, setConfirmDelete] = useState(null); // enrollment id pending delete
 
   const load = () => {
     setLoading(true);
@@ -109,6 +110,12 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => { load(); }, [search, statusFilter, sort, order]);
+
+  const handleDelete = async (id) => {
+    await api.delete(`/admin/enrollments/${id}`);
+    setConfirmDelete(null);
+    load();
+  };
 
   const statCards = [
     { label: 'Total', value: stats.total, color: 'bg-gray-100 text-gray-700' },
@@ -195,7 +202,7 @@ export default function AdminDashboard() {
                     <th className="text-left px-4 py-3 font-semibold text-gray-600">Status</th>
                     <th className="text-left px-4 py-3 font-semibold text-gray-600">Submitted</th>
                     <th className="text-left px-4 py-3 font-semibold text-gray-600">Updated</th>
-                    <th className="px-4 py-3" />
+                    <th className="px-4 py-3 text-right font-semibold text-gray-600">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -214,9 +221,38 @@ export default function AdminDashboard() {
                       <td className="px-4 py-3 text-gray-500">{fmt(e.submitted_at)}</td>
                       <td className="px-4 py-3 text-gray-500">{fmt(e.updated_at)}</td>
                       <td className="px-4 py-3">
-                        <Link to={`/admin/enrollment/${e.id}`} className="btn-secondary text-xs py-1.5 px-3 whitespace-nowrap">
-                          Review →
-                        </Link>
+                        <div className="flex items-center justify-end gap-2">
+                          {confirmDelete === e.id ? (
+                            <>
+                              <span className="text-xs text-gray-500 whitespace-nowrap">Delete?</span>
+                              <button
+                                onClick={() => handleDelete(e.id)}
+                                className="text-xs py-1.5 px-3 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition-colors whitespace-nowrap"
+                              >
+                                Yes, delete
+                              </button>
+                              <button
+                                onClick={() => setConfirmDelete(null)}
+                                className="btn-secondary text-xs py-1.5 px-3 whitespace-nowrap"
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <Link to={`/admin/enrollment/${e.id}`} className="btn-secondary text-xs py-1.5 px-3 whitespace-nowrap">
+                                Review →
+                              </Link>
+                              <button
+                                onClick={() => setConfirmDelete(e.id)}
+                                className="text-xs py-1.5 px-3 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 hover:border-red-400 transition-colors"
+                                title="Delete submission"
+                              >
+                                🗑
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}

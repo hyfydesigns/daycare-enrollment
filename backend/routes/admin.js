@@ -133,6 +133,15 @@ router.patch('/enrollments/:id/reopen', (req, res) => {
   res.json({ success: true });
 });
 
+// Delete enrollment — scoped to org
+router.delete('/enrollments/:id', (req, res) => {
+  const orgId = scopeOrgId(req);
+  const enrollment = db.prepare('SELECT id FROM enrollments WHERE id = ? AND org_id = ?').get(req.params.id, orgId);
+  if (!enrollment) return res.status(404).json({ error: 'Enrollment not found' });
+  db.prepare('DELETE FROM enrollments WHERE id = ?').run(req.params.id);
+  res.json({ success: true });
+});
+
 // Dashboard stats — scoped to org
 router.get('/stats', (req, res) => {
   const orgId = scopeOrgId(req);
