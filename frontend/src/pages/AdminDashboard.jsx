@@ -96,12 +96,13 @@ export default function AdminDashboard() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sort, setSort] = useState('updated_at');
   const [order, setOrder] = useState('desc');
+  const [showArchived, setShowArchived] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null); // enrollment id pending delete
 
   const load = () => {
     setLoading(true);
     Promise.all([
-      api.get('/admin/enrollments', { params: { search, status: statusFilter, sort, order } }),
+      api.get('/admin/enrollments', { params: { search, status: statusFilter, sort, order, archived: showArchived ? 'true' : 'false' } }),
       api.get('/admin/stats'),
     ]).then(([e, s]) => {
       setEnrollments(e.data);
@@ -109,11 +110,21 @@ export default function AdminDashboard() {
     }).finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, [search, statusFilter, sort, order]);
+  useEffect(() => { load(); }, [search, statusFilter, sort, order, showArchived]);
 
   const handleDelete = async (id) => {
     await api.delete(`/admin/enrollments/${id}`);
     setConfirmDelete(null);
+    load();
+  };
+
+  const handleArchive = async (id) => {
+    await api.patch(`/admin/enrollments/${id}/archive`);
+    load();
+  };
+
+  const handleUnarchive = async (id) => {
+    await api.patch(`/admin/enrollments/${id}/unarchive`);
     load();
   };
 
@@ -125,6 +136,7 @@ export default function AdminDashboard() {
     { label: 'Approved', value: stats.approved, color: 'bg-green-100 text-green-700' },
     { label: 'Needs Correction', value: stats.needs_correction, color: 'bg-red-100 text-red-700' },
   ];
+  const archivedCount = stats.archived ?? 0;
 
   return (
     <div className="min-h-screen bg-warm-50">
@@ -135,12 +147,32 @@ export default function AdminDashboard() {
 
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">Enrollment Dashboard</h1>
-            <p className="text-gray-500 text-sm">Review and manage all parent submissions.</p>
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">
+              {showArchived ? 'Archived Enrollments' : 'Enrollment Dashboard'}
+            </h1>
+            <p className="text-gray-500 text-sm">
+              {showArchived
+                ? 'Archived submissions — restore or permanently delete them here.'
+                : 'Review and manage all parent submissions.'}
+            </p>
           </div>
-          <button onClick={() => navigate('/admin/settings')} className="btn-secondary text-sm py-2 px-4">
-            ⚙️ Settings
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => { setShowArchived(v => !v); setStatusFilter('all'); }}
+              className={`text-sm py-2 px-4 rounded-xl border font-medium transition-colors ${
+                showArchived
+                  ? 'bg-amber-100 border-amber-300 text-amber-800 hover:bg-amber-200'
+                  : archivedCount > 0
+                    ? 'btn-secondary'
+                    : 'btn-secondary opacity-60'
+              }`}
+            >
+              📦 {showArchived ? 'Back to Active' : `Archived${archivedCount > 0 ? ` (${archivedCount})` : ''}`}
+            </button>
+            <button onClick={() => navigate('/admin/settings')} className="btn-secondary text-sm py-2 px-4">
+              ⚙️ Settings
+            </button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -188,8 +220,8 @@ export default function AdminDashboard() {
           </div>
         ) : enrollments.length === 0 ? (
           <div className="card text-center py-12">
-            <div className="text-4xl mb-3">📋</div>
-            <p className="text-gray-500">No enrollments found.</p>
+            <div className="text-4xl mb-3">{showArchived ? '📦' : '📋'}</div>
+            <p className="text-gray-500">{showArchived ? 'No archived enrollments.' : 'No enrollments found.'}</p>
           </div>
         ) : (
           <div className="card p-0 overflow-hidden">
@@ -201,13 +233,16 @@ export default function AdminDashboard() {
                     <th className="text-left px-4 py-3 font-semibold text-gray-600">Parent</th>
                     <th className="text-left px-4 py-3 font-semibold text-gray-600">Status</th>
                     <th className="text-left px-4 py-3 font-semibold text-gray-600">Submitted</th>
-                    <th className="text-left px-4 py-3 font-semibold text-gray-600">Updated</th>
+                    {showArchived
+                      ? <th className="text-left px-4 py-3 font-semibold text-gray-600">Archived On</th>
+                      : <th className="text-left px-4 py-3 font-semibold text-gray-600">Updated</th>
+                    }
                     <th className="px-4 py-3 text-right font-semibold text-gray-600">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {enrollments.map((e) => (
-                    <tr key={e.id} className="hover:bg-orange-50/30 transition-colors">
+                    <tr key={e.id} className={`transition-colors ${showArchived ? 'opacity-70 hover:opacity-100' : 'hover:bg-orange-50/30'}`}>
                       <td className="px-4 py-3">
                         <span className="font-medium text-gray-800">
                           {e.child_name || <span className="text-gray-400 italic">Not entered</span>}
@@ -219,7 +254,7 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-4 py-3"><StatusBadge status={e.status} /></td>
                       <td className="px-4 py-3 text-gray-500">{fmt(e.submitted_at)}</td>
-                      <td className="px-4 py-3 text-gray-500">{fmt(e.updated_at)}</td>
+                      <td className="px-4 py-3 text-gray-500">{fmt(showArchived ? e.archived_at : e.updated_at)}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-2">
                           {confirmDelete === e.id ? (
@@ -238,11 +273,35 @@ export default function AdminDashboard() {
                                 Cancel
                               </button>
                             </>
+                          ) : showArchived ? (
+                            <>
+                              <button
+                                onClick={() => handleUnarchive(e.id)}
+                                className="text-xs py-1.5 px-3 rounded-xl border border-green-200 text-green-700 font-medium hover:bg-green-50 hover:border-green-400 transition-colors whitespace-nowrap"
+                                title="Restore enrollment"
+                              >
+                                ↩ Restore
+                              </button>
+                              <button
+                                onClick={() => setConfirmDelete(e.id)}
+                                className="text-xs py-1.5 px-3 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 hover:border-red-400 transition-colors"
+                                title="Permanently delete"
+                              >
+                                🗑
+                              </button>
+                            </>
                           ) : (
                             <>
                               <Link to={`/admin/enrollment/${e.id}`} className="btn-secondary text-xs py-1.5 px-3 whitespace-nowrap">
                                 Review →
                               </Link>
+                              <button
+                                onClick={() => handleArchive(e.id)}
+                                className="text-xs py-1.5 px-3 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 hover:border-gray-400 transition-colors"
+                                title="Archive submission"
+                              >
+                                📦
+                              </button>
                               <button
                                 onClick={() => setConfirmDelete(e.id)}
                                 className="text-xs py-1.5 px-3 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 hover:border-red-400 transition-colors"

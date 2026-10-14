@@ -211,6 +211,12 @@ if (schemaVersion() < 8) {
   db.prepare('INSERT INTO schema_migrations (version) VALUES (8)').run();
 }
 
+// ─── Migration 9: Archive flag on enrollments ────────────────────────────────
+if (schemaVersion() < 9) {
+  db.exec(`ALTER TABLE enrollments ADD COLUMN archived_at TEXT`);
+  db.prepare('INSERT INTO schema_migrations (version) VALUES (9)').run();
+}
+
 db.exec('PRAGMA foreign_keys = ON');
 
 const isProd = process.env.NODE_ENV === 'production';

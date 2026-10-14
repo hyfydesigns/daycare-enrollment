@@ -18,17 +18,24 @@ function scopeOrgId(req) {
 
 // All enrollments with parent info — scoped to org
 router.get('/enrollments', (req, res) => {
-  const { search, status, sort = 'updated_at', order = 'desc' } = req.query;
+  const { search, status, sort = 'updated_at', order = 'desc', archived = 'false' } = req.query;
   const orgId = scopeOrgId(req);
+  const showArchived = archived === 'true';
 
   let query = `
-    SELECT e.id, e.child_name, e.status, e.submitted_at, e.created_at, e.updated_at, e.admin_notes,
+    SELECT e.id, e.child_name, e.status, e.submitted_at, e.created_at, e.updated_at, e.admin_notes, e.archived_at,
            u.full_name AS parent_name, u.email AS parent_email
     FROM enrollments e
     JOIN users u ON e.user_id = u.id
     WHERE e.org_id = ?
   `;
   const params = [orgId];
+
+  if (showArchived) {
+    query += ` AND e.archived_at IS NOT NULL`;
+  } else {
+    query += ` AND e.archived_at IS NULL`;
+  }
 
   if (search) {
     query += ` AND (e.child_name LIKE ? OR u.full_name LIKE ? OR u.email LIKE ?)`;
@@ -142,7 +149,25 @@ router.delete('/enrollments/:id', (req, res) => {
   res.json({ success: true });
 });
 
-// Dashboard stats — scoped to org
+// Archive enrollment — scoped to org
+router.patch('/enrollments/:id/archive', (req, res) => {
+  const orgId = scopeOrgId(req);
+  const enrollment = db.prepare('SELECT id FROM enrollments WHERE id = ? AND org_id = ?').get(req.params.id, orgId);
+  if (!enrollment) return res.status(404).json({ error: 'Enrollment not found' });
+  db.prepare(`UPDATE enrollments SET archived_at = datetime('now'), updated_at = datetime('now') WHERE id = ?`).run(req.params.id);
+  res.json({ success: true });
+});
+
+// Unarchive enrollment — scoped to org
+router.patch('/enrollments/:id/unarchive', (req, res) => {
+  const orgId = scopeOrgId(req);
+  const enrollment = db.prepare('SELECT id FROM enrollments WHERE id = ? AND org_id = ?').get(req.params.id, orgId);
+  if (!enrollment) return res.status(404).json({ error: 'Enrollment not found' });
+  db.prepare(`UPDATE enrollments SET archived_at = NULL, updated_at = datetime('now') WHERE id = ?`).run(req.params.id);
+  res.json({ success: true });
+});
+
+// Dashboard stats — scoped to org (active enrollments only)
 router.get('/stats', (req, res) => {
   const orgId = scopeOrgId(req);
   const stats = db.prepare(`
@@ -153,9 +178,10 @@ router.get('/stats', (req, res) => {
       SUM(CASE WHEN status = 'printed'          THEN 1 ELSE 0 END) AS printed,
       SUM(CASE WHEN status = 'signed'           THEN 1 ELSE 0 END) AS signed,
       SUM(CASE WHEN status = 'approved'         THEN 1 ELSE 0 END) AS approved,
-      SUM(CASE WHEN status = 'needs_correction' THEN 1 ELSE 0 END) AS needs_correction
-    FROM enrollments WHERE org_id = ?
-  `).get(orgId);
+      SUM(CASE WHEN status = 'needs_correction' THEN 1 ELSE 0 END) AS needs_correction,
+      (SELECT COUNT(*) FROM enrollments WHERE org_id = ? AND archived_at IS NOT NULL) AS archived
+    FROM enrollments WHERE org_id = ? AND archived_at IS NULL
+  `).get(orgId, orgId);
   res.json(stats);
 });
 
